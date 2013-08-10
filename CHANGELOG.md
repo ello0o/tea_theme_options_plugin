@@ -1,3 +1,8 @@
+## 1.3.0 (August 10, 2013)
+
+NEW PLUGIN VERSION
+
+
 ## 1.2.12 (July 31, 2013)
 
 Fix small bug in Twitter template
