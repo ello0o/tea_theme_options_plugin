@@ -50,7 +50,7 @@ Repeat the process as you want/need :)
 
 ### 4) Adding contents
 
-Adding fields is quite simple. All you have to do from the **Tea T.O." page is to click on your wanted page and use the bottom Adding contents form.  
+Adding fields is quite simple. All you have to do from the **Tea T.O.** page is to click on your wanted page and use the bottom Adding contents form.  
 For each field, just follow the instructions and fill the form simply.  
 NOTA: the **Tea TO** uses [Transient Wordpress API](http://codex.wordpress.org/Transients_API) to stock options.
 
