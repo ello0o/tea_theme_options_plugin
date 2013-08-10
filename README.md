@@ -36,7 +36,7 @@ Check your new `tea_theme_options` folder is created in your plugins directory.
 
 ### 2) Enable your Tea Theme Options plugin
 
-Go to your plugins page `wp-admin/plugins.php` and click on the **Enable** button.
+Go to your plugins page `your_wp_website/wp-admin/plugins.php` and click on the **Enable** button.
 
 
 ### 3) Let's roll!
@@ -50,8 +50,7 @@ Repeat the process as you want/need :)
 
 ### 4) Adding contents
 
-Adding fields is quite simple. All you have to do from the **Tea T.O.** page is to click on your wanted page and use the bottom Adding contents form.  
-For each field, just follow the instructions and fill the form simply.  
+Adding fields is quite simple. All you have to do from the **Tea T.O.** page is to click on your wanted page and use the bottom Adding contents form. For each field, just follow the instructions and fill the form simply.  
 NOTA: the **Tea TO** uses [Transient Wordpress API](http://codex.wordpress.org/Transients_API) to stock options.
 
 All available types are:
