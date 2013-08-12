@@ -98,20 +98,19 @@ All available types are:
 ### 5) Previews
 
 Dashboard  
-![Main dashboard](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_dashboard.jpg)  
-![Main empty dashboard](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_dashboard_empty.jpg)  
+![Main dashboard](https://raw.github.com/Takeatea/tea_theme_options/master/assets/screenshot-1.jpg)  
+![Main empty dashboard](https://raw.github.com/Takeatea/tea_theme_options/master/assets/screenshot-2.jpg)  
 
 Page  
-![Add a page](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_addpage.jpg)
-![Edit a page](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_editpage.jpg)  
+![Add a page](https://raw.github.com/Takeatea/tea_theme_options/master/assets/screenshot-3.jpg)
+![Edit a page](https://raw.github.com/Takeatea/tea_theme_options/master/assets/screenshot-4.jpg)  
 
 All fields  
-![All fields listed](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_allfields.jpg)  
+![All fields listed](https://raw.github.com/Takeatea/tea_theme_options/master/assets/screenshot-5.jpg)  
 
 Specials  
-![A connection block](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_connection.jpg)  
-![A documentation page](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_documentation.jpg)  
-![An example page](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_example.jpg)  
+![A connection block](https://raw.github.com/Takeatea/tea_theme_options/master/assets/screenshot-6.jpg)  
+![An example page](https://raw.github.com/Takeatea/tea_theme_options/master/assets/screenshot-7.jpg)  
 
 
 ### 6) That's all folkes!
