@@ -1,6 +1,7 @@
 ## 1.3.0 (August 10, 2013)
 
 NEW PLUGIN VERSION
+- with new images
 
 
 ## 1.2.12 (July 31, 2013)
