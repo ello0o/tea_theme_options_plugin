@@ -365,5 +365,6 @@ List now all next todos and add some extra features
 
 == Upgrade Notice ==
 
-...
+= 1.3.1 =
+French version
 
