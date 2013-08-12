@@ -2,6 +2,7 @@
 
 NEW PLUGIN VERSION
 - with new images
+- with a Wordpress plugin readme version
 
 
 ## 1.2.12 (July 31, 2013)
