@@ -97,18 +97,21 @@ All available types are:
 
 ### 5) Previews
 
-Main view with Google font special field
-![Main view with Google font special field](http://takeatea.com/teato/teato-a.png)
+Dashboard
+![Main dashboard](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_dashboard.jpg)
+![Main empty dashboard](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_dashboard_empty.jpg)
 
-Wordpress color field
-![Wordpress color field](http://takeatea.com/teato/teato-b.png)
-![Wordpress color field opened](http://takeatea.com/teato/teato-f.png)
+Page
+![Add a page](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_addpage.jpg)
+![Edit a page](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_dash_editpage.jpg)
 
-Checkboxes field with un/select all
-![Checkboxes field with un/select all](http://takeatea.com/teato/teato-d.png)
+All fields
+![All fields listed](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_allfields.jpg)
 
-Social special field
-![Social special field](http://takeatea.com/teato/teato-e.png)
+Specials
+![A connection block](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_connection.jpg)
+![A documentation page](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_documentation.jpg)
+![An example page](https://raw.github.com/Takeatea/tea_theme_options/master/img/plugin/tea_example.jpg)
 
 
 ### 6) That's all folkes!
