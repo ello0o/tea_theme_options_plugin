@@ -1,6 +1,6 @@
 /*
- * Tea Theme Options v1.2.10 - "GOMU GOMU NOOOOOOOOOO BAZOOKKAAAAAAAAA - One Piece"
- * Copyright 2012 Take a Tea
+ * Tea Theme Options v1.3.1 - "MARIMO!! - One Piece (Sanji)"
+ * Copyright 2013 Take a Tea
  * By Take a Tea <takeatea.com> :)
  */
 
@@ -847,5 +847,49 @@
 }
 .tea_to.wrap .network-recent .likes {
     background-image:url(../img/network/likes.png);
+}
+
+
+/*--- [RESPONSIVE] ---*/
+@media (max-width:1300px) {
+    .tea_to.wrap .tea-nav-menus-frame {
+        margin-left:0;
+    }
+    .tea_to.wrap .tea-menu-settings-column {
+        display:block;
+        float:none;
+        margin-bottom:20px;
+        margin-left:0;
+        width:100%;
+    }
+    .tea_to.wrap .tea-menu-management-liquid {
+        float:none;
+    }
+}
+@media (max-width:990px) {
+    .tea_to.wrap .tea-nav-menus-frame {
+        margin-left:0;
+    }
+    .tea_to.wrap .tea-menu-settings-column {
+        display:block;
+        float:none;
+        margin-bottom:20px;
+        margin-left:0;
+        width:100%;
+    }
+    .tea_to.wrap .tea-menu-management-liquid {
+        float:none;
+    }
+    .tea_to.wrap #poststuff #post-body.columns-2 {
+        margin-right:0;
+    }
+    .tea_to.wrap #post-body-content {
+        float:none;
+    }
+    .tea_to.wrap #post-body.columns-2 #postbox-container-1 {
+        float:none;
+        margin-right:0;
+        width:100%;
+    }
 }
 

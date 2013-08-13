@@ -1,3 +1,8 @@
+## 1.3.1 (August 13, 2013)
+
+Responsified!
+
+
 ## 1.3.0 (August 10, 2013)
 
 NEW PLUGIN VERSION
