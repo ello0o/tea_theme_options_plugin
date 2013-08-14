@@ -1,7 +1,7 @@
 <?php
 //Build data
 $titles = array(
-    'title' => __('Tea T.O.', TTO_I18N),
+    'title' => __('Tea Theme Options', TTO_I18N),
     'name' => __('Tea T.O.', TTO_I18N),
     'slug' => '',
     'submit' => false

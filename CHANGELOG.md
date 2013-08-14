@@ -1,3 +1,9 @@
+## 1.3.2 (August 14, 2013)
+
+NEW CUSTOM POST TYPE
+You can now manage all your CPT directly from the Tea TO dashboard
+
+
 ## 1.3.1 (August 13, 2013)
 
 Responsified!

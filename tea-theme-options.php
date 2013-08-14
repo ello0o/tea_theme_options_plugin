@@ -4,10 +4,10 @@
  * 
  * @package TakeaTea
  * @subpackage Tea Theme Options
- * @since Tea Theme Options 1.3.1
+ * @since Tea Theme Options 1.3.2
  *
  * Plugin Name: Tea Theme Options
- * Version: 1.3.1
+ * Version: 1.3.2
  * Plugin URI: https://github.com/Takeatea/tea_to_wp
  * Description: The Tea Theme Options (or "Tea TO") allows you to easily add professional looking theme options panels to your WordPress theme.
  * Author: Achraf Chouk
@@ -40,7 +40,7 @@ if (!defined('ABSPATH')) {
 //---------------------------------------------------------------------------------------------------------//
 
 //Usefull definitions for the Tea Theme Options
-defined('TTO_VERSION')      or define('TTO_VERSION', '1.3.1');
+defined('TTO_VERSION')      or define('TTO_VERSION', '1.3.2');
 defined('TTO_I18N')         or define('TTO_I18N', 'teathemeoptions');
 defined('TTO_DURATION')     or define('TTO_DURATION', 86400);
 defined('TTO_INSTAGRAM')    or define('TTO_INSTAGRAM', 'http://takeatea.com/instagram.php');
@@ -59,7 +59,7 @@ defined('TTO_NONCE')        or define('TTO_NONCE', 'tea-ajax-nonce');
  *
  * To get its own settings
  *
- * @since Tea Theme Options 1.3.1
+ * @since Tea Theme Options 1.3.2
  * @todo Special field:     Typeahead, Date, Geolocalisation
  * @todo Shortcodes panel:  Youtube, Vimeo, Dailymotion, Google Maps, Google Adsense,
  *                          Related posts, Private content, RSS Feed, Embed PDF,
@@ -98,7 +98,7 @@ class Tea_Theme_Options
      * @uses wp_schedule_event()
      * @param string $identifier Define the plugin main slug
      *
-     * @since Tea Theme Options 1.3.0
+     * @since Tea Theme Options 1.3.2
      */
     public function __construct($identifier = 'tea_theme_options')
     {
@@ -130,13 +130,13 @@ class Tea_Theme_Options
             $this->setDuration();
             $this->setDirectory();
 
-            //Get page
+            //Get current page
             $this->current = isset($_GET['page']) ? $_GET['page'] : '';
 
-            //Add page
+            //Add page or custom post type
             if (isset($_POST['tea_to_dashboard']))
             {
-                $this->updatePages($_POST);
+                $this->updateContents($_POST);
             }
             //...Or update options...
             else if (isset($_POST['tea_to_settings']))
@@ -154,7 +154,7 @@ class Tea_Theme_Options
                 $this->__networkDispatch($_POST);
             }
 
-            //Build menus
+            //Build page menus
             $this->buildMenus();
         }
 
@@ -166,6 +166,9 @@ class Tea_Theme_Options
 
         //Register custom schedule filter
         add_filter('tea_task_schedule', array(&$this, '__cronSchedules'));
+
+        //Build CPT
+        $this->buildCustomPostTypes();
     }
 
 
@@ -225,6 +228,48 @@ class Tea_Theme_Options
     }
 
     /**
+     * Register custom post types.
+     *
+     * @uses add_action()
+     *
+     * @since Tea Theme Options 1.3.2
+     */
+    public function buildCustomPostTypes()
+    {
+        //Register global action hook
+        add_action('init', array(&$this, '__buildMenuCustomPostType'));
+
+        //Register custom supports action hook
+        /*if ($this->getIsAdmin())
+        {
+            add_action('save_post', array(&$this, '__save'));
+
+            if (!empty($this->customs))
+            {
+                add_action('admin_init', array(&$this, '__customs'));
+            }
+
+            //Register icons action hook
+            if (!empty($this->images))
+            {
+                add_action('admin_head', array(&$this, '__icons'));
+            }
+
+            //Register columns action hook
+            if (!empty($this->columns))
+            {
+                add_action('manage_edit-' . $this->posttype . '_columns', array(&$this, '__columns'));
+            }
+
+            //Register dashboard action hook
+            if ($this->dashboard)
+            {
+                add_action('wp_dashboard_setup', array(&$this, '__dashboard'));
+            }
+        }*/
+    }
+
+    /**
      * Register menus.
      *
      * @uses add_action()
@@ -254,13 +299,12 @@ class Tea_Theme_Options
 
         //Get all registered pages
         $pages = $this->getOption('tea_config_pages', array());
-        $contents = $this->getOption('tea_config_contents', array());
 
         //For all page WITH contents, add it to the page listing
         foreach ($pages as $key => $page)
         {
             //If the page contents are not defined, so continue to the next iteration
-            if (!isset($contents[$key]) || empty($contents[$key]))
+            if (!isset($page['contents']) || empty($page['contents']))
             {
                 continue;
             }
@@ -273,7 +317,7 @@ class Tea_Theme_Options
                 'submit' => $page['submit']
             );
             //Get contents
-            $details = $contents[$key];
+            $details = $page['contents'];
 
             //Build page with contents
             $this->addPage($titles, $details);
@@ -505,6 +549,86 @@ class Tea_Theme_Options
     }
 
     /**
+     * Hook building menus for CPTS.
+     *
+     * @uses register_post_type()
+     *
+     * @since Tea Theme Options 1.3.2
+     */
+    public function __buildMenuCustomPostType()
+    {
+        //Get all registered pages
+        $cpts = $this->getOption('tea_config_cpts', array());
+
+        //Check if we have some CPTS to initialize
+        if (empty($cpts))
+        {
+            return false;
+        }
+
+        //Iterate on each cpt
+        foreach ($cpts as $key => $cpt)
+        {
+            //Check if no master page is defined
+            if (!isset($cpt['title']) || empty($cpt['title']))
+            {
+                $this->adminmessage = __('Something went wrong in your parameters definition: no title defined for you custom post type. Please, try again by filling the form properly.', TTO_I18N);
+                return false;
+            }
+
+            //Special case: define a post as title to edit default post component
+            if ('post' == strtolower($cpt['title']))
+            {
+                continue;
+            }
+
+            //Treat arrays
+            $caps = isset($cpt['capability_type']) && !empty($cpt['capability_type']) ? array_keys($cpt['capability_type']) : 'post';
+            $caps = is_array($caps) && 1 == count($caps) && 'post' == $caps[0] ? 'post' : $caps;
+            $sups = isset($cpt['supports']) && !empty($cpt['supports']) ? array_keys($cpt['supports']) : array('title', 'editor', 'thumbnail');
+            $taxs = isset($cpt['taxonomies']) && !empty($cpt['taxonomies']) ? array_keys($cpt['taxonomies']) : array('category', 'post_tag');
+
+            //Build labels
+            $labels = array(
+                'name' => $cpt['title'],
+                'singular_name' => isset($cpt['singular']) ? $cpt['singular'] : $cpt['title'],
+                'menu_name' => isset($cpt['menu_name']) ? $cpt['menu_name'] : $cpt['title'],
+                'all_items' => isset($cpt['all_items']) ? $cpt['all_items'] : $cpt['title'],
+                'add_new' => isset($cpt['add_new']) ? $cpt['add_new'] : __('Add new', TTO_I18N),
+                'add_new_item' => isset($cpt['add_new_item']) ? $cpt['add_new_item'] : sprintf(__('Add new %s', TTO_I18N), $cpt['title']),
+                'edit' => isset($cpt['edit']) ? $cpt['edit'] : __('Edit', TTO_I18N),
+                'edit_item' => isset($cpt['edit_item']) ? $cpt['edit_item'] : sprintf(__('Edit %s', TTO_I18N), $cpt['title']),
+                'new_item' => isset($cpt['new_item']) ? $cpt['new_item'] : sprintf(__('New %s', TTO_I18N), $cpt['title']),
+                'view' => isset($cpt['view']) ? $cpt['view'] : __('View', TTO_I18N),
+                'view_item' => isset($cpt['view_item']) ? $cpt['view_item'] : sprintf(__('View %s', TTO_I18N), $cpt['title']),
+                'search_items' => isset($cpt['search_items']) ? $cpt['search_items'] : sprintf(__('Search %s', TTO_I18N), $cpt['title']),
+                'not_found' => isset($cpt['not_found']) ? $cpt['not_found'] : sprintf(__('No %s found', TTO_I18N), $cpt['title']),
+                'not_found_in_trash' => isset($cpt['not_found_in_trash']) ? $cpt['not_found_in_trash'] : sprintf(__('No %s found in Trash', TTO_I18N), $cpt['title']),
+                'parent_item_colon' => isset($cpt['parent_item_colon']) ? $cpt['parent_item_colon'] : sprintf(__('Parent %s', TTO_I18N), $cpt['title'])
+            );
+
+            //Build args
+            $args = array(
+                'labels' => $labels,
+                'public' => isset($cpt['options']['public']) && $cpt['options']['public'] ? true : false,
+                'show_ui' => isset($cpt['options']['show_ui']) && $cpt['options']['show_ui'] ? true : false,
+                'show_in_menu' => isset($cpt['options']['show_ui']) && $cpt['options']['show_ui'] ? true : false,
+                'capability_type' => $caps,
+                'hierarchical' => isset($cpt['options']['hierarchical']) && $cpt['options']['hierarchical'] ? true : false,
+                'rewrite' => isset($cpt['options']['rewrite']) && $cpt['options']['rewrite'] ? true : false,
+                'supports' => $sups,
+                'query_var' => isset($cpt['options']['query_var']) && $cpt['options']['query_var'] ? true : false,
+                'permalink_epmask' => EP_PERMALINK,
+                'taxonomies' => $taxs,
+                'menu_icon' => $cpt['menu_icon_small']
+            );
+
+            //Action to register
+            register_post_type(strtolower($cpt['title']), $args);
+        }
+    }
+
+    /**
      * Hook building menus.
      *
      * @uses add_action()
@@ -603,19 +727,19 @@ class Tea_Theme_Options
         //Check FlickR
         if (false !== $flickr && !empty($flickr))
         {
-            $this->__networkUpdate(array('tea_to_network' => 'flickr'));
+            $this->updateNetworks(array('tea_to_network' => 'flickr'));
         }
 
         //Check Instagram
         if (false !== $instagram && !empty($instagram))
         {
-            $this->__networkUpdate(array('tea_to_network' => 'instagram'));
+            $this->updateNetworks(array('tea_to_network' => 'instagram'));
         }
 
         //Check Twitter
         if (false !== $twitter && !empty($twitter))
         {
-            $this->__networkUpdate(array('tea_to_network' => 'twitter'));
+            $this->updateNetworks(array('tea_to_network' => 'twitter'));
         }
     }
 
@@ -773,7 +897,7 @@ class Tea_Theme_Options
      * @param array $contents Contains all data
      * @param bool $group Define if we are in group display or not
      *
-     * @since Tea Theme Options 1.3.0
+     * @since Tea Theme Options 1.3.2
      */
     protected function buildType($contents)
     {
@@ -880,7 +1004,7 @@ class Tea_Theme_Options
             }
 
             //Wordpress inputs
-            else if(in_array($content['type'], array('categories', 'menus', 'pages', 'posts', 'posttypes', 'tags')))
+            else if(in_array($content['type'], array('categories', 'menus', 'pages', 'posts', 'posttypes', 'tags', 'wordpress')))
             {
                 $this->__fieldWordpressContents($content);
             }
@@ -933,7 +1057,7 @@ class Tea_Theme_Options
 
         //Get pages and contents
         $pages = $this->getOption('tea_config_pages', array());
-        $contents = $this->getOption('tea_config_contents', array());
+        $cpts = $this->getOption('tea_config_cpts', array());
 
         //Get lists
         $bgdetails = $this->getDefaults('background-details');
@@ -956,7 +1080,8 @@ class Tea_Theme_Options
         $ajax = admin_url() . 'admin-ajax.php';
 
         //Count pages and default pages
-        $count = count($pages);
+        $count_page = count($pages);
+        $count_cpt = count($cpts);
 
         //Get template
         include('tpl/fields/__field_dashboard.tpl.php');
@@ -1444,7 +1569,7 @@ class Tea_Theme_Options
     {
         //Default variables
         $id = $content['id'];
-        $type = $content['type'];
+        $type = 'wordpress' == $content['type'] ? $content['mode'] : $content['type'];
         $title = isset($content['title']) ? $content['title'] : __('Tea Wordpress Contents', TTO_I18N);
         $multiple = isset($content['multiple']) ? $content['multiple'] : false;
         $description = isset($content['description']) ? $content['description'] : '';
@@ -1721,7 +1846,7 @@ class Tea_Theme_Options
      *
      * @param array $request Contains all data sent in $_REQUEST method
      *
-     * @since Tea Theme Options 1.3.0
+     * @since Tea Theme Options 1.3.2
      */
     protected function __networkDispatch($request)
     {
@@ -1745,7 +1870,7 @@ class Tea_Theme_Options
         //...Or update data from network
         else if (isset($request['tea_to_update']))
         {
-            $this->__networkUpdate($request);
+            $this->updateNetworks($request);
         }
     }
 
@@ -1757,7 +1882,7 @@ class Tea_Theme_Options
      * @uses header()
      * @param array $request Contains all data sent in $_REQUEST method
      *
-     * @since Tea Theme Options 1.3.0
+     * @since Tea Theme Options 1.3.2
      */
     protected function __networkCallback($request)
     {
@@ -1780,7 +1905,7 @@ class Tea_Theme_Options
 
             //Get all data
             $request['tea_to_network'] = 'instagram';
-            $this->__networkUpdate($request);
+            $this->updateNetworks($request);
         }
         //Check Twitter
         else if (isset($request['twitter_token']))
@@ -1794,7 +1919,7 @@ class Tea_Theme_Options
 
             //Get all data
             $request['tea_to_network'] = 'twitter';
-            $this->__networkUpdate($request);
+            $this->updateNetworks($request);
         }
 
         //Build callback
@@ -1813,7 +1938,7 @@ class Tea_Theme_Options
      * @uses header()
      * @param array $request Contains all data sent in $_REQUEST method
      *
-     * @since Tea Theme Options 1.3.0
+     * @since Tea Theme Options 1.3.2
      */
     protected function __networkConnection($request)
     {
@@ -1835,7 +1960,7 @@ class Tea_Theme_Options
         else if ('flickr' == $request['tea_to_network'])
         {
             $request['tea_flickr_install'] = true;
-            $this->__networkUpdate($request);
+            $this->updateNetworks($request);
         }
         //Check Twitter
         else if ('twitter' == $request['tea_to_network'])
@@ -1908,162 +2033,6 @@ class Tea_Theme_Options
             //Redirect to network
             header('Location: ' . $uri, false, 307);
             exit;
-        }
-    }
-
-    /**
-     * Build data from the asked network.
-     *
-     * @uses date_i18n()
-     * @param array $request Contains all data sent in $_REQUEST method
-     *
-     * @since Tea Theme Options 1.3.0
-     */
-    protected function __networkUpdate($request)
-    {
-        //Define date of update
-        $timer = date_i18n(get_option('date_format') . ', ' . get_option('time_format'));
-
-        //Get includes
-        $includes = $this->getIncludes();
-
-        //Check Instagram
-        if ('instagram' == $request['tea_to_network'])
-        {
-            //Define date of update
-            _set_option('tea_instagram_connection_update', $timer);
-
-            //Check if Google Font has already been included
-            if (!isset($includes['instagram']))
-            {
-                $this->setIncludes('instagram');
-                include_once $this->getDirectory('normal') . '/includes/instaphp/instaphp.php';
-            }
-
-            //Get token from DB
-            $token = $this->getOption('tea_instagram_access_token', '');
-
-            //Get user info
-            $api = Instaphp\Instaphp::Instance($token);
-            $user_info = $api->Users->Info();
-            $user_recent = $api->Users->Recent('self');
-
-            //Uodate DB with the user info
-            _set_option('tea_instagram_user_info', $user_info->data);
-
-            //Update DB with the user info
-            $recents = array();
-                //Iterate
-            foreach ($user_recent->data as $item)
-            {
-                $recents[] = array(
-                    'link' => $item->link,
-                    'url' => $item->images->thumbnail->url,
-                    'title' => empty($item->caption->text) ? __('Untitled', TTO_I18N) : $item->caption->text,
-                    'width' => $item->images->thumbnail->width,
-                    'height' => $item->images->thumbnail->height,
-                    'likes' => $item->likes->count,
-                    'comments' => $item->comments->count
-                );
-            }
-                //Update
-            _set_option('tea_instagram_user_recent', $recents);
-        }
-        //Check Flickr
-        else if ('flickr' == $request['tea_to_network'])
-        {
-            //Check if a username is defined
-            if (isset($request['tea_flickr_install']) && (!isset($request['tea_flickr_username']) || empty($request['tea_flickr_username'])))
-            {
-                $this->adminmessage = __('Something went wrong in your parameters definition. You need to specify a username to get connected.', TTO_I18N);
-                return false;
-            }
-
-            //Define date of update
-            _set_option('tea_flickr_connection_update', $timer);
-
-            //Check if Flickr has already been included
-            if (!isset($includes['flickr']))
-            {
-                $this->setIncludes('flickr');
-                include_once $this->getDirectory('normal') . '/includes/phpflickr/phpFlickr.php';
-            }
-
-            //Get Flickr configurations
-            $defaults = $this->getDefaults('flickr');
-
-            //Get Flickr instance with token
-            $api = new phpFlickr($defaults['api_key']);
-
-            //Install a new user
-            if (isset($request['tea_flickr_install']))
-            {
-                //Get Flickr instance with token
-                $user_info = $api->people_findByUsername($request['tea_flickr_username']);
-
-                //Check if the API returns value
-                if (false === $user_info || empty($user_info))
-                {
-                    $this->adminmessage = __('Something went wrong in your parameters definition. The username specified is unknown.', TTO_I18N);
-                    return false;
-                }
-
-                //Update DB with the user info
-                _set_option('tea_flickr_user_info', $user_info);
-            }
-
-            //Get user info
-            $user_info = isset($user_info) ? $user_info : $this->getOption('tea_flickr_user_info', array());
-
-            //Update DB with the user details
-            $user_details = $api->people_getInfo($user_info['id']);
-            _set_option('tea_flickr_user_details', $user_details);
-
-            //Update DB with the user info
-            $user_recent = $api->people_getPublicPhotos($user_info['id'], null, null, 20, 1);
-            $recents = array();
-                //Iterate
-            foreach ($user_recent['photos']['photo'] as $item)
-            {
-                $recents[] = array(
-                    'link' => 'http://www.flickr.com/photos/' . $item['owner'] . '/' . $item['id'],
-                    'url' => $api->buildPhotoURL($item, 'medium_640'),
-                    'url_small' => $api->buildPhotoURL($item, 'square'),
-                    'title' => $item['title']
-                );
-            }
-                //Update
-            _set_option('tea_flickr_user_recent', $recents);
-        }
-        //Check Twitter
-        else if ('twitter' == $request['tea_to_network'])
-        {
-            //Define date of update
-            _set_option('tea_twitter_connection_update', $timer);
-
-            //Check if Twitter has already been included
-            if (!isset($includes['twitter']))
-            {
-                $this->setIncludes('twitter');
-                include_once $this->getDirectory('normal') . '/includes/twitteroauth/twitteroauth.php';
-            }
-
-            //Get Twitter configurations
-            $defaults = $this->getDefaults('twitter');
-
-            //Get token from DB
-            $token = $this->getOption('tea_twitter_access_token', '');
-
-            //Build TwitterOAuth object
-            $api = new TwitterOAuth($defaults['consumer_key'], $defaults['consumer_secret'], $token['oauth_token'], $token['oauth_token_secret']);
-
-            //Get user info
-            $user_info = $api->get('account/verify_credentials');
-            _set_option('tea_twitter_user_info', $user_info);
-
-            //Get recent tweets
-            $user_recent = $api->get('statuses/user_timeline');
-            _set_option('tea_twitter_user_recent', $user_recent);
         }
     }
 
@@ -2555,72 +2524,13 @@ class Tea_Theme_Options
     }
 
     /**
-     * Register $_POST and $_FILES into transients.
-     *
-     * @uses wp_handle_upload()
-     * @param array $post Contains all data in $_POST
-     * @param array $files Contains all data in $_FILES
-     *
-     * @since Tea Theme Options 1.3.0
-     */
-    protected function updateOptions($post, $files)
-    {
-        //Check if we are in admin panel
-        if (!$this->getIsAdmin())
-        {
-            return false;
-        }
-
-        //Set all options in transient
-        foreach ($post as $k => $v)
-        {
-            //Don't register this default value
-            if ('tea_to_settings' == $k || 'submit' == $k)
-            {
-                continue;
-            }
-
-            //Special usecase: checkboxes. When it's not checked, no data is sent through the $_POST array
-            $p = false !== strpos($k, '__checkbox') ? $post : array();
-
-            //Register option and transient
-            $this->setOption($k, $v, $p);
-        }
-
-        //Check if files are attempting to be uploaded
-        if (!empty($files))
-        {
-            //Get required files
-            require_once(ABSPATH . 'wp-admin' . '/includes/image.php');
-            require_once(ABSPATH . 'wp-admin' . '/includes/file.php');
-            require_once(ABSPATH . 'wp-admin' . '/includes/media.php');
-
-            //Set all URL in transient
-            foreach ($files as $k => $v)
-            {
-                //Don't do nothing if no file is defined
-                if (empty($v['tmp_name']))
-                {
-                    continue;
-                }
-
-                //Do the magic
-                $file = wp_handle_upload($v, array('test_form' => false));
-
-                //Register option and transient
-                $this->setOption($k, $file['url']);
-            }
-        }
-    }
-
-    /**
-     * Add a page to the theme options panel.
+     * Add a page or a custom post type to the theme options panel.
      *
      * @param array $request Contains all data sent in $_REQUEST method
      *
-     * @since Tea Theme Options 1.3.0
+     * @since Tea Theme Options 1.3.2
      */
-    protected function updatePages($request)
+    protected function updateContents($request)
     {
         //Check if we are in admin panel
         if (!$this->getIsAdmin())
@@ -2667,8 +2577,8 @@ class Tea_Theme_Options
             //Insert pages in DB
             _set_option('tea_config_pages', $pages);
         }
-        //Add content
-        else if (isset($request['tea_add_content']))
+        //Add page content
+        else if (isset($request['tea_add_pagecontent']))
         {
             //Check if a page has been defined
             if (!isset($request['tea_page']) || empty($request['tea_page']))
@@ -2681,10 +2591,6 @@ class Tea_Theme_Options
             $pages = $this->getOption('tea_config_pages', array());
             $pages = false === $pages || empty($pages) ? array() : $pages;
             $slug = $request['tea_page'];
-
-            //Get all contents
-            $contents = $this->getOption('tea_config_contents', array());
-            $contents = false === $contents || empty($contents) ? array() : $contents;
 
             //Check if the defined page exists properly
             if (!array_key_exists($slug, $pages))
@@ -2753,38 +2659,352 @@ class Tea_Theme_Options
                             continue;
                         }
 
-
                         //Check if an id is required
                         if ($needid)
                         {
                             //Get the old ID if it was defined
-                            $old_id = isset($contents[$slug][$key]['id']) && !empty($contents[$slug][$key]['id']) ? $contents[$slug][$key]['id'] : '';
+                            $old_id = isset($pages[$slug]['contents'][$key]['id']) && !empty($pages[$slug]['contents'][$key]['id']) ? $pages[$slug]['contents'][$key]['id'] : '';
 
                             //Make the new ID
                             $ctn['id'] = !empty($old_id) ? $old_id : $slug . '_' . sanitize_title($ctn['title']);
                         }
 
+                        //Add content
                         $currents[] = $ctn;
                     }
                 }
 
                 //Check if contents are already defined, so unset it
-                if (isset($contents[$slug]))
+                if (isset($pages[$slug]['contents']) && !empty($pages[$slug]['contents']))
                 {
-                    unset($contents[$slug]);
+                    unset($pages[$slug]['contents']);
                 }
 
                 //Assign options to the current page
-                $contents[$slug] = $currents;
+                $pages[$slug]['contents'] = $currents;
 
                 //Insert contents in DB
-                _set_option('tea_config_contents', $contents);
+                _set_option('tea_config_pages', $pages);
 
+                //Check error messages without disturbing actions
                 if (!empty($adminmessage))
                 {
                     $this->adminmessage = '<p>' . __('Something went wrong in your form:', TTO_I18N) . '</p><ul>' . $adminmessage . '</ul><p>' . __('Please, try again by filling properly the form.', TTO_I18N) . '</p>';
                     return false;
                 }
+            }
+        }
+        //Add custom post type
+        else if (isset($request['tea_add_cpt']))
+        {
+            //Check if a title has been defined
+            if (!isset($request['tea_add_cpt_title']) || empty($request['tea_add_cpt_title']))
+            {
+                $this->adminmessage = __('Something went wrong in your form: no title is defined. Please, try again by filling properly the form.', TTO_I18N);
+                return false;
+            }
+
+            //Get vars
+            $title = $request['tea_add_cpt_title'];
+            $slug = '_' . sanitize_title($title);
+
+            //Get all pages
+            $cpts = $this->getOption('tea_config_cpts', array());
+            $cpts = false === $cpts || empty($cpts) ? array() : $cpts;
+
+            //Check if slug is already in
+            if (array_key_exists($slug, $cpts))
+            {
+                $this->adminmessage = __('Something went wrong in your form: a custom post type with your title already exists. Please, try another one.', TTO_I18N);
+                return false;
+            }
+
+            $cpts[$slug] = array(
+                'title' => $title,
+                'slug' => $slug
+            );
+
+            //Insert pages in DB
+            _set_option('tea_config_cpts', $cpts);
+        }
+        //Add cutsom post type content
+        else if (isset($request['tea_add_cptcontent']))
+        {
+            //Check if a page has been defined
+            if (!isset($request['tea_cpt']) || empty($request['tea_cpt']))
+            {
+                $this->adminmessage = __('Something went wrong in your form: no custom post type is defined. Please, try again by filling properly the form.', TTO_I18N);
+                return false;
+            }
+
+            //Get all pages
+            $cpts = $this->getOption('tea_config_cpts', array());
+            $cpts = false === $cpts || empty($cpts) ? array() : $cpts;
+            $slug = $request['tea_cpt'];
+
+            //Check if the defined page exists properly
+            if (!array_key_exists($slug, $cpts))
+            {
+                $this->adminmessage = __('Something went wrong in your form: the defined custom post type does not exist. Please, try again by using the form properly.', TTO_I18N);
+                return false;
+            }
+
+            //Check if the user want to delete a custom post type
+            if (isset($request['delete_cpt']))
+            {
+                //Delete slug from cpts
+                unset($cpts[$slug]);
+
+                //Insert pages in DB
+                _set_option('tea_config_cpts', $cpts);
+            }
+            //Check if the user want to save a page
+            else if (isset($request['save_cpt']))
+            {
+                //Get vars
+                $currents = array();
+
+                //Iterate on each content
+                if (isset($request['tea_add_contents']))
+                {
+                    //Check if a title has been defined for all fields without IDs
+                    if (!isset($request['tea_add_contents']['title']) || empty($request['tea_add_contents']['title']))
+                    {
+                        $adminmessage = sprintf(__('Something went wrong in your form: no title defined for your <b>%s</b> Custom post type. Please, try again by filling properly the form.', TTO_I18N), $slug);
+                        return false;
+                    }
+
+                    //Add content
+                    $currents = $request['tea_add_contents'];
+                }
+
+                //Check if contents are already defined, so unset it
+                if (isset($cpts[$slug]) && !empty($cpts[$slug]))
+                {
+                    unset($cpts[$slug]);
+                }
+
+                //Assign options to the current custom post type
+                $cpts[$slug] = $currents;
+                $cpts[$slug]['slug'] = $slug;
+
+                //Insert contents in DB
+                _set_option('tea_config_cpts', $cpts);
+            }
+        }
+    }
+
+    /**
+     * Build data from the asked network.
+     *
+     * @uses date_i18n()
+     * @param array $request Contains all data sent in $_REQUEST method
+     *
+     * @since Tea Theme Options 1.3.2
+     */
+    protected function updateNetworks($request)
+    {
+        //Define date of update
+        $timer = date_i18n(get_option('date_format') . ', ' . get_option('time_format'));
+
+        //Get includes
+        $includes = $this->getIncludes();
+
+        //Check Instagram
+        if ('instagram' == $request['tea_to_network'])
+        {
+            //Define date of update
+            _set_option('tea_instagram_connection_update', $timer);
+
+            //Check if Google Font has already been included
+            if (!isset($includes['instagram']))
+            {
+                $this->setIncludes('instagram');
+                include_once $this->getDirectory('normal') . '/includes/instaphp/instaphp.php';
+            }
+
+            //Get token from DB
+            $token = $this->getOption('tea_instagram_access_token', '');
+
+            //Get user info
+            $api = Instaphp\Instaphp::Instance($token);
+            $user_info = $api->Users->Info();
+            $user_recent = $api->Users->Recent('self');
+
+            //Uodate DB with the user info
+            _set_option('tea_instagram_user_info', $user_info->data);
+
+            //Update DB with the user info
+            $recents = array();
+                //Iterate
+            foreach ($user_recent->data as $item)
+            {
+                $recents[] = array(
+                    'link' => $item->link,
+                    'url' => $item->images->thumbnail->url,
+                    'title' => empty($item->caption->text) ? __('Untitled', TTO_I18N) : $item->caption->text,
+                    'width' => $item->images->thumbnail->width,
+                    'height' => $item->images->thumbnail->height,
+                    'likes' => $item->likes->count,
+                    'comments' => $item->comments->count
+                );
+            }
+                //Update
+            _set_option('tea_instagram_user_recent', $recents);
+        }
+        //Check Flickr
+        else if ('flickr' == $request['tea_to_network'])
+        {
+            //Check if a username is defined
+            if (isset($request['tea_flickr_install']) && (!isset($request['tea_flickr_username']) || empty($request['tea_flickr_username'])))
+            {
+                $this->adminmessage = __('Something went wrong in your parameters definition. You need to specify a username to get connected.', TTO_I18N);
+                return false;
+            }
+
+            //Define date of update
+            _set_option('tea_flickr_connection_update', $timer);
+
+            //Check if Flickr has already been included
+            if (!isset($includes['flickr']))
+            {
+                $this->setIncludes('flickr');
+                include_once $this->getDirectory('normal') . '/includes/phpflickr/phpFlickr.php';
+            }
+
+            //Get Flickr configurations
+            $defaults = $this->getDefaults('flickr');
+
+            //Get Flickr instance with token
+            $api = new phpFlickr($defaults['api_key']);
+
+            //Install a new user
+            if (isset($request['tea_flickr_install']))
+            {
+                //Get Flickr instance with token
+                $user_info = $api->people_findByUsername($request['tea_flickr_username']);
+
+                //Check if the API returns value
+                if (false === $user_info || empty($user_info))
+                {
+                    $this->adminmessage = __('Something went wrong in your parameters definition. The username specified is unknown.', TTO_I18N);
+                    return false;
+                }
+
+                //Update DB with the user info
+                _set_option('tea_flickr_user_info', $user_info);
+            }
+
+            //Get user info
+            $user_info = isset($user_info) ? $user_info : $this->getOption('tea_flickr_user_info', array());
+
+            //Update DB with the user details
+            $user_details = $api->people_getInfo($user_info['id']);
+            _set_option('tea_flickr_user_details', $user_details);
+
+            //Update DB with the user info
+            $user_recent = $api->people_getPublicPhotos($user_info['id'], null, null, 20, 1);
+            $recents = array();
+                //Iterate
+            foreach ($user_recent['photos']['photo'] as $item)
+            {
+                $recents[] = array(
+                    'link' => 'http://www.flickr.com/photos/' . $item['owner'] . '/' . $item['id'],
+                    'url' => $api->buildPhotoURL($item, 'medium_640'),
+                    'url_small' => $api->buildPhotoURL($item, 'square'),
+                    'title' => $item['title']
+                );
+            }
+                //Update
+            _set_option('tea_flickr_user_recent', $recents);
+        }
+        //Check Twitter
+        else if ('twitter' == $request['tea_to_network'])
+        {
+            //Define date of update
+            _set_option('tea_twitter_connection_update', $timer);
+
+            //Check if Twitter has already been included
+            if (!isset($includes['twitter']))
+            {
+                $this->setIncludes('twitter');
+                include_once $this->getDirectory('normal') . '/includes/twitteroauth/twitteroauth.php';
+            }
+
+            //Get Twitter configurations
+            $defaults = $this->getDefaults('twitter');
+
+            //Get token from DB
+            $token = $this->getOption('tea_twitter_access_token', '');
+
+            //Build TwitterOAuth object
+            $api = new TwitterOAuth($defaults['consumer_key'], $defaults['consumer_secret'], $token['oauth_token'], $token['oauth_token_secret']);
+
+            //Get user info
+            $user_info = $api->get('account/verify_credentials');
+            _set_option('tea_twitter_user_info', $user_info);
+
+            //Get recent tweets
+            $user_recent = $api->get('statuses/user_timeline');
+            _set_option('tea_twitter_user_recent', $user_recent);
+        }
+    }
+
+    /**
+     * Register $_POST and $_FILES into transients.
+     *
+     * @uses wp_handle_upload()
+     * @param array $post Contains all data in $_POST
+     * @param array $files Contains all data in $_FILES
+     *
+     * @since Tea Theme Options 1.3.0
+     */
+    protected function updateOptions($post, $files)
+    {
+        //Check if we are in admin panel
+        if (!$this->getIsAdmin())
+        {
+            return false;
+        }
+
+        //Set all options in transient
+        foreach ($post as $k => $v)
+        {
+            //Don't register this default value
+            if ('tea_to_settings' == $k || 'submit' == $k)
+            {
+                continue;
+            }
+
+            //Special usecase: checkboxes. When it's not checked, no data is sent through the $_POST array
+            $p = false !== strpos($k, '__checkbox') ? $post : array();
+
+            //Register option and transient
+            $this->setOption($k, $v, $p);
+        }
+
+        //Check if files are attempting to be uploaded
+        if (!empty($files))
+        {
+            //Get required files
+            require_once(ABSPATH . 'wp-admin' . '/includes/image.php');
+            require_once(ABSPATH . 'wp-admin' . '/includes/file.php');
+            require_once(ABSPATH . 'wp-admin' . '/includes/media.php');
+
+            //Set all URL in transient
+            foreach ($files as $k => $v)
+            {
+                //Don't do nothing if no file is defined
+                if (empty($v['tmp_name']))
+                {
+                    continue;
+                }
+
+                //Do the magic
+                $file = wp_handle_upload($v, array('test_form' => false));
+
+                //Register option and transient
+                $this->setOption($k, $file['url']);
             }
         }
     }

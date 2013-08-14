@@ -10,7 +10,8 @@ The [Tea Theme Options](http://takeatea.github.com/tea_to_wp/) (or **Tea TO**) a
 + **Wordpress Media Manager** - Beautiful interface: A streamlined, all-new experience where you can create galleries faster with drag-and-drop reordering, inline caption editing, and simplified controls.
 + **Full of Options** - 4 kinds of options used to display information, store fields values or get data from your Wordpress database. The options are made to build your Wordpress pages easily.
 + **Easier for administrators** - The interface is thought to be the most userfriendly. The Tea TO core adds some extra interface customisations to make your life easier.
-+ **Easier for developers** - Create a new admin panel easily with the new dashboard. The Tea TO core is made to allow non-developer profiles to easily create the settings they need to customise their templates.  
++ **Easier for developers** - Create a new admin panel easily with the new dashboard. The Tea TO core is made to allow non-developer profiles to easily create the settings they need to customise their templates.
++ **Custom Post Types** - Create a custom post type from your uniq dashboard easily.  
 
 
 ## Summary
@@ -46,6 +47,7 @@ Click on the **Tea T.O.** page, select the **Add a custom page** menu and fill t
 NOTA: all created pages will only appear if contents are defined.
 
 Repeat the process as you want/need :)
+You can easily create Custom post types from the **Add a custom post type** menu: as usual, just fill the form.  
 
 
 ### 4) Adding contents

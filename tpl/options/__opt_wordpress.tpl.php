@@ -18,9 +18,9 @@ $num = isset($num) ? $num : '__NUM__';
 
 <label class="label-edit-content">
     <span><?php _e('Content', TTO_I18N) ?></span>
-    <select name="tea_add_contents[<?php echo $num ?>][content]" class="code">
+    <select name="tea_add_contents[<?php echo $num ?>][mode]" class="code">
         <?php
-            $wp = isset($val['content']) ? $val['content'] : '';
+            $wp = isset($val['mode']) ? $val['mode'] : '';
             foreach ($wordpress as $key => $itm):
                 $selected = $wp == $key ? 'selected="selected"' : '';
         ?>

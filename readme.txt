@@ -4,7 +4,7 @@ Donate link: https://github.com/Takeatea/tea_theme_options
 Tags: theme, options, pages, custom post types
 Requires at least: 3.0.1
 Tested up to: 3.6
-Stable tag: 1.3.1
+Stable tag: 1.3.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +21,7 @@ The [Tea Theme Options](http://takeatea.github.com/tea_to_wp/) (or **Tea TO**) a
 * **Full of Options** - 4 kinds of options used to display information, store fields values or get data from your Wordpress database. The options are made to build your Wordpress pages easily.
 * **Easier for administrators** - The interface is thought to be the most userfriendly. The Tea TO core adds some extra interface customisations to make your life easier.
 * **Easier for developers** - Create a new admin panel easily with the new dashboard. The Tea TO core is made to allow non-developer profiles to easily create the settings they need to customise their templates.
+* **Custom Post Types** - Create a custom post type from your uniq dashboard easily.
 
 
 All available fields
@@ -102,6 +103,7 @@ Click on the **Tea T.O.** page, select the **Add a custom page** menu and fill t
 NOTA: all created pages will only appear if contents are defined.
 
 Repeat the process as you want/need :)
+You can easily create Custom post types from the **Add a custom post type** menu: as usual, just fill the form.
 
 
 All you have to do from the **Tea T.O.** page is to click on your wanted page and use the bottom Adding contents form. For each field, just follow the instructions and fill the form simply.
@@ -137,7 +139,11 @@ That's all to begin working with **Tea TO**
 
 == Changelog ==
 
-= 1.3.1 (August 10, 2013) =
+= 1.3.2 (August 14, 2013) =
+NEW CUSTOM POST TYPE
+You can now manage all your CPT directly from the Tea TO dashboard
+
+= 1.3.1 (August 13, 2013) =
 Responsified!
 
 = 1.3.0 (August 10, 2013) =
@@ -368,6 +374,5 @@ List now all next todos and add some extra features
 
 == Upgrade Notice ==
 
-= 1.3.1 =
-French version
+Nothing to do.
 
