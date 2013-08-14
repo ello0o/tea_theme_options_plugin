@@ -139,6 +139,12 @@ That's all to begin working with **Tea TO**
 
 == Changelog ==
 
+= 1.3.2.1 (August 14, 2013) =
+
+* **Fix:**
+
+  * fix bug on small icon
+
 = 1.3.2 (August 14, 2013) =
 NEW CUSTOM POST TYPE
 You can now manage all your CPT directly from the Tea TO dashboard

@@ -4,7 +4,7 @@
  * 
  * @package TakeaTea
  * @subpackage Tea Theme Options
- * @since Tea Theme Options 1.3.2
+ * @since Tea Theme Options 1.3.2.1
  *
  * Plugin Name: Tea Theme Options
  * Version: 1.3.2
@@ -40,7 +40,7 @@ if (!defined('ABSPATH')) {
 //---------------------------------------------------------------------------------------------------------//
 
 //Usefull definitions for the Tea Theme Options
-defined('TTO_VERSION')      or define('TTO_VERSION', '1.3.2');
+defined('TTO_VERSION')      or define('TTO_VERSION', '1.3.2.1');
 defined('TTO_I18N')         or define('TTO_I18N', 'teathemeoptions');
 defined('TTO_DURATION')     or define('TTO_DURATION', 86400);
 defined('TTO_INSTAGRAM')    or define('TTO_INSTAGRAM', 'http://takeatea.com/instagram.php');
@@ -59,7 +59,7 @@ defined('TTO_NONCE')        or define('TTO_NONCE', 'tea-ajax-nonce');
  *
  * To get its own settings
  *
- * @since Tea Theme Options 1.3.2
+ * @since Tea Theme Options 1.3.2.1
  * @todo Special field:     Typeahead, Date, Geolocalisation
  * @todo Shortcodes panel:  Youtube, Vimeo, Dailymotion, Google Maps, Google Adsense,
  *                          Related posts, Private content, RSS Feed, Embed PDF,
@@ -553,7 +553,7 @@ class Tea_Theme_Options
      *
      * @uses register_post_type()
      *
-     * @since Tea Theme Options 1.3.2
+     * @since Tea Theme Options 1.3.2.1
      */
     public function __buildMenuCustomPostType()
     {
@@ -620,7 +620,7 @@ class Tea_Theme_Options
                 'query_var' => isset($cpt['options']['query_var']) && $cpt['options']['query_var'] ? true : false,
                 'permalink_epmask' => EP_PERMALINK,
                 'taxonomies' => $taxs,
-                'menu_icon' => $cpt['menu_icon_small']
+                'menu_icon' => isset($cpt['menu_icon_small']) ? $cpt['menu_icon_small'] : ''
             );
 
             //Action to register
