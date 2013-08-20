@@ -1,3 +1,15 @@
+## 1.4.0 (August 20, 2013)
+
+Get real advices from Nicolas A. <https://twitter.com/nicolassing> from Take a Tea :)
+
+- **Edit:**
+  - all components are now in different folders
+  - each field in a single package
+  - <checkbox>, <multiselect>, <radio> and <select> or now uniq (<choice> component is dead)
+- **New:**
+  - Abstract classes are now introduced for fields
+
+
 ## 1.3.2.1 (August 14, 2013)
 
 - **Fix:**

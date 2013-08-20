@@ -4,10 +4,10 @@
  * 
  * @package TakeaTea
  * @subpackage Tea Theme Options
- * @since Tea Theme Options 1.3.2.1
+ * @since Tea Theme Options 1.4.0
  *
  * Plugin Name: Tea Theme Options
- * Version: 1.3.2
+ * Version: 1.4.0
  * Plugin URI: https://github.com/Takeatea/tea_to_wp
  * Description: The Tea Theme Options (or "Tea TO") allows you to easily add professional looking theme options panels to your WordPress theme.
  * Author: Achraf Chouk
@@ -36,11 +36,14 @@ if (!defined('ABSPATH')) {
     die('You are not authorized to directly access to this page');
 }
 
-
+/*if(class_exists($field_class) && method_exists($field_class, 'enqueue')){
+    $enqueue = new $field_class('','',$this);
+    $enqueue->enqueue();
+}*/
 //---------------------------------------------------------------------------------------------------------//
 
 //Usefull definitions for the Tea Theme Options
-defined('TTO_VERSION')      or define('TTO_VERSION', '1.3.2.1');
+defined('TTO_VERSION')      or define('TTO_VERSION', '1.4.0');
 defined('TTO_I18N')         or define('TTO_I18N', 'teathemeoptions');
 defined('TTO_DURATION')     or define('TTO_DURATION', 86400);
 defined('TTO_INSTAGRAM')    or define('TTO_INSTAGRAM', 'http://takeatea.com/instagram.php');
@@ -59,7 +62,7 @@ defined('TTO_NONCE')        or define('TTO_NONCE', 'tea-ajax-nonce');
  *
  * To get its own settings
  *
- * @since Tea Theme Options 1.3.2.1
+ * @since Tea Theme Options 1.4.0
  * @todo Special field:     Typeahead, Date, Geolocalisation
  * @todo Shortcodes panel:  Youtube, Vimeo, Dailymotion, Google Maps, Google Adsense,
  *                          Related posts, Private content, RSS Feed, Embed PDF,
@@ -98,7 +101,7 @@ class Tea_Theme_Options
      * @uses wp_schedule_event()
      * @param string $identifier Define the plugin main slug
      *
-     * @since Tea Theme Options 1.3.2
+     * @since Tea Theme Options 1.4.0
      */
     public function __construct($identifier = 'tea_theme_options')
     {
@@ -112,7 +115,7 @@ class Tea_Theme_Options
             load_plugin_textdomain(TTO_I18N, false, dirname(TTO_BASENAME));
 
             //Registration hooks
-            //register_activation_hook(__FILE__, array(&$this, '__adminInstall'));
+            register_activation_hook(__FILE__, array(&$this, '__adminInstall'));
             register_deactivation_hook(__FILE__, array(&$this, '__adminUninstall'));
 
             //Check identifier
@@ -123,7 +126,7 @@ class Tea_Theme_Options
             }
 
             //Define parameters
-            $this->can_upload = true; //current_user_can('upload_files')
+            $this->can_upload = true; //current_user_can('upload_files');
             $this->identifier = $identifier;
 
             //Set default duration and directories
@@ -133,25 +136,20 @@ class Tea_Theme_Options
             //Get current page
             $this->current = isset($_GET['page']) ? $_GET['page'] : '';
 
-            //Add page or custom post type
-            if (isset($_POST['tea_to_dashboard']))
+            //Update options...
+            if (isset($_REQUEST['tea_to_settings']))
             {
-                $this->updateContents($_POST);
+                $this->updateOptions($_REQUEST, $_FILES);
             }
-            //...Or update options...
-            else if (isset($_POST['tea_to_settings']))
+            //...Or add page or custom post type...
+            else if (isset($_REQUEST['tea_to_dashboard']))
             {
-                $this->updateOptions($_POST, $_FILES);
+                $this->updateContents($_REQUEST);
             }
-            //...Or update network data...
-            else if (isset($_GET['tea_to_callback']))
+            //...Or update network data
+            else if (isset($_REQUEST['tea_to_callback']) || isset($_REQUEST['tea_to_network']))
             {
-                $this->__networkCallback($_GET);
-            }
-            //...Or make some modifications to the asked network
-            else if (isset($_POST['tea_to_network']))
-            {
-                $this->__networkDispatch($_POST);
+                $this->updateNetworks($_REQUEST);
             }
 
             //Build page menus
@@ -177,55 +175,6 @@ class Tea_Theme_Options
     /**
      * MAIN FUNCTIONS
      **/
-
-    /**
-     * Add a page to the theme options panel.
-     *
-     * @param array $configs Array containing all configurations
-     * @param array $contents Contains all data
-     *
-     * @since Tea Theme Options 1.3.0
-     */
-    protected function addPage($configs = array(), $contents = array())
-    {
-        //Check if we are in admin panel
-        if (!$this->getIsAdmin())
-        {
-            return false;
-        }
-
-        //Check params and if a master page already exists
-        if (empty($configs))
-        {
-            $this->adminmessage = __('Something went wrong in your parameters definition: your configs are empty. See README.md for more explanations.', TTO_I18N);
-            return false;
-        }
-        else if (empty($contents))
-        {
-            $this->adminmessage = __('Something went wrong in your parameters definition: your contents are empty. See README.md for more explanations.', TTO_I18N);
-            return false;
-        }
-
-        //Update capabilities
-        $this->capability = 'manage_options';
-
-        //Define the slug
-        $slug = isset($configs['slug']) ? $this->getSlug($configs['slug']) : $this->getSlug();
-
-        //Update the current page index
-        $this->index = $slug;
-
-        //Define page configurations
-        $this->pages[$slug] = array(
-            'title' => isset($configs['title']) ? $configs['title'] : 'Theme Options',
-            'name' => isset($configs['name']) ? $configs['name'] : 'Tea Theme Options',
-            'position' => isset($configs['position']) ? $configs['position'] : null,
-            'description' => isset($configs['description']) ? $configs['description'] : '',
-            'submit' => isset($configs['submit']) ? $configs['submit'] : true,
-            'slug' => $slug,
-            'contents' => $contents
-        );
-    }
 
     /**
      * Register custom post types.
@@ -340,19 +289,34 @@ class Tea_Theme_Options
         $this->buildDefaults(2);
     }
 
-
-    //--------------------------------------------------------------------------//
+    /**
+     * WORDPRESS USED HOOKS
+     **/
 
     /**
-     * WORDPRESS HOOKS
-     **/
+     * Hook install plugin.
+     *
+     * @uses wp_enqueue_script()
+     *
+     * @since Tea Theme Options 1.4.0
+     */
+    public function __adminInstall()
+    {
+        //Check if we are in admin panel
+        if (!$this->getIsAdmin())
+        {
+            return false;
+        }
+
+        //Nothing to do...
+    }
 
     /**
      * Hook uninstall plugin.
      *
      * @uses wp_enqueue_script()
      *
-     * @since Tea Theme Options 1.3.0
+     * @since Tea Theme Options 1.4.0
      */
     public function __adminUninstall()
     {
@@ -361,6 +325,28 @@ class Tea_Theme_Options
         {
             return false;
         }
+
+        //Delete configs
+        _del_option('tea_config_pages');
+        _del_option('tea_config_cpts');
+
+        //Delete FlickR
+        _del_option('tea_flickr_user_info');
+        _del_option('tea_flickr_user_details');
+        _del_option('tea_flickr_user_recent');
+        _del_option('tea_flickr_connection_update');
+
+        //Delete Instagram
+        _del_option('tea_instagram_access_token');
+        _del_option('tea_instagram_user_info');
+        _del_option('tea_instagram_user_recent');
+        _del_option('tea_instagram_connection_update');
+
+        //Delete Twitter
+        _del_option('tea_twitter_access_token');
+        _del_option('tea_twitter_user_info');
+        _del_option('tea_twitter_user_recent');
+        _del_option('tea_twitter_connection_update');
     }
 
     /**
@@ -487,7 +473,7 @@ class Tea_Theme_Options
     /**
      * Get a content type in JSON format.
      *
-     * @since Tea Theme Options 1.3.0
+     * @since Tea Theme Options 1.4.0
      */
     public function __buildJSONOptions()
     {
@@ -518,21 +504,11 @@ class Tea_Theme_Options
         }
 
         //Get lists
-        $bgdetails = $this->getDefaults('background-details');
-        $bgimages = $this->getDefaults('images');
-        $fonts = $this->getDefaults('fonts');
-        $types = $this->getDefaults('typesraw');
-        $choices = $this->getDefaults('typeschoices');
-        $networks = $this->getDefaults('typesnetworks');
-        $socials = $this->getDefaults('social');
-        $texts = $this->getDefaults('text');
-        $wordpress = $this->getDefaults('typeswordpress');
-
-        //Get icons
-        $urlsocial = $this->getDirectory() . 'img/social/icon-';
+        $types = $this->getFields();
+        $type = $request['content'];
 
         //Check if the submitted content is unknown
-        if (!isset($request['content']) || !in_array($request['content'], $types))
+        if (!isset($type) || !in_array($type, $types))
         {
             //Set code 500
             header('HTTP/1.1 500 Internal Server Error');
@@ -543,8 +519,19 @@ class Tea_Theme_Options
         //Set code 200
         header('HTTP/1.1 200 OK');
 
+        //Set types in special case
+        if(in_array($type, array('categories', 'menus', 'pages', 'posts', 'posttypes', 'tags', 'wordpress')))
+        {
+            $type = 'wordpress';
+        }
+
         //Get wanted contents
-        include('tpl/options/__opt_' . $request['content'] . '.tpl.php');
+        $class = 'Tea_Fields_' . ucfirst($type);
+        require_once(TTO_PATH . 'classes/fields/' . $type . '/class-tea-fields-' . $type . '.php');
+
+        //Make the magic
+        $field = new $class();
+        $field->templateDashboard();
         die;
     }
 
@@ -715,32 +702,16 @@ class Tea_Theme_Options
     /**
      * Display a warning message on the admin panel.
      *
-     * @since Tea Theme Options 1.3.0
+     * @since Tea Theme Options 1.4.0
      */
     public function __cronSchedules()
     {
-        //Get networks values from DB
-        $flickr = $this->getOption('tea_flickr_user_info', '');
-        $instagram = $this->getOption('tea_instagram_access_token', '');
-        $twitter = $this->getOption('tea_twitter_access_token', '');
+        //Require file
+        require_once(TTO_PATH . 'classes/fields/network/class-tea-fields-network.php');
 
-        //Check FlickR
-        if (false !== $flickr && !empty($flickr))
-        {
-            $this->updateNetworks(array('tea_to_network' => 'flickr'));
-        }
-
-        //Check Instagram
-        if (false !== $instagram && !empty($instagram))
-        {
-            $this->updateNetworks(array('tea_to_network' => 'instagram'));
-        }
-
-        //Check Twitter
-        if (false !== $twitter && !empty($twitter))
-        {
-            $this->updateNetworks(array('tea_to_network' => 'twitter'));
-        }
+        //Make the magic
+        $field = new Tea_Fields_Network();
+        $field->updateNetworks();
     }
 
     /**
@@ -765,12 +736,93 @@ class Tea_Theme_Options
         }
     }
 
-
-    //--------------------------------------------------------------------------//
-
     /**
      * BUILD METHODS
      **/
+
+    /**
+     * Add a page to the theme options panel.
+     *
+     * @param array $configs Array containing all configurations
+     * @param array $contents Contains all data
+     *
+     * @since Tea Theme Options 1.3.0
+     */
+    protected function addPage($configs = array(), $contents = array())
+    {
+        //Check if we are in admin panel
+        if (!$this->getIsAdmin())
+        {
+            return false;
+        }
+
+        //Check params and if a master page already exists
+        if (empty($configs))
+        {
+            $this->adminmessage = __('Something went wrong in your parameters definition: your configs are empty. See README.md for more explanations.', TTO_I18N);
+            return false;
+        }
+        else if (empty($contents))
+        {
+            $this->adminmessage = __('Something went wrong in your parameters definition: your contents are empty. See README.md for more explanations.', TTO_I18N);
+            return false;
+        }
+
+        //Update capabilities
+        $this->capability = 'manage_options';
+
+        //Define the slug
+        $slug = isset($configs['slug']) ? $this->getSlug($configs['slug']) : $this->getSlug();
+
+        //Update the current page index
+        $this->index = $slug;
+
+        //Define page configurations
+        $this->pages[$slug] = array(
+            'title' => isset($configs['title']) ? $configs['title'] : 'Theme Options',
+            'name' => isset($configs['name']) ? $configs['name'] : 'Tea Theme Options',
+            'position' => isset($configs['position']) ? $configs['position'] : null,
+            'description' => isset($configs['description']) ? $configs['description'] : '',
+            'submit' => isset($configs['submit']) ? $configs['submit'] : true,
+            'slug' => $slug,
+            'contents' => $contents
+        );
+    }
+
+    /**
+     * Build connection content.
+     *
+     * @param array $contents Contains all data
+     *
+     * @since Tea Theme Options 1.4.0
+     */
+    protected function buildConnection($contents)
+    {
+        //Check if we are in admin panel
+        if (!$this->getIsAdmin())
+        {
+            return false;
+        }
+
+        //Default variables
+        $page = empty($this->current) ? $this->identifier : $this->current;
+        $includes = $this->getIncludes();
+
+        //Include class field
+        if (!isset($includes['network']))
+        {
+            //Set the include
+            $this->setIncludes('network');
+
+            //Require file
+            require_once(TTO_PATH . 'classes/fields/network/class-tea-fields-network.php');
+        }
+
+        //Make the magic
+        $field = new Tea_Fields_Network();
+        $field->setCurrentPage($page);
+        $field->templatePages($contents);
+    }
 
     /**
      * Build content layout.
@@ -805,11 +857,59 @@ class Tea_Theme_Options
         $title = $this->pages[$current]['title'];
         $contents = $this->pages[$current]['contents'];
 
-        //Build contents relatively to the type
-        $this->buildType($contents);
+        //Build contents relatively to the type (special case: Dashboard and Connection pages)
+        if ($current == $this->identifier)
+        {
+            $contents = 1 == count($contents) ? $contents[0] : $contents;
+            $this->buildDashboard($contents);
+        }
+        else if ($this->identifier . '_connections' == $current)
+        {
+            $contents = 1 == count($contents) ? $contents[0] : $contents;
+            $this->buildConnection($contents);
+        }
+        else
+        {
+            $this->buildType($contents);
+        }
 
         //Build footer
         $this->buildLayoutFooter();
+    }
+
+    /**
+     * Build dashboard content.
+     *
+     * @param array $contents Contains all data
+     *
+     * @since Tea Theme Options 1.4.0
+     */
+    protected function buildDashboard($contents)
+    {
+        //Check if we are in admin panel
+        if (!$this->getIsAdmin())
+        {
+            return false;
+        }
+
+        //Default variables
+        $page = empty($this->current) ? $this->identifier : $this->current;
+        $includes = $this->getIncludes();
+
+        //Include class field
+        if (!isset($includes['dashboard']))
+        {
+            //Set the include
+            $this->setIncludes('dashboard');
+
+            //Require file
+            require_once(TTO_PATH . 'classes/fields/dashboard/class-tea-fields-dashboard.php');
+        }
+
+        //Make the magic
+        $field = new Tea_Fields_Dashboard();
+        $field->setCurrentPage($page);
+        $field->templatePages($contents);
     }
 
     /**
@@ -831,7 +931,7 @@ class Tea_Theme_Options
         if (1 == $step)
         {
             //Get dashboard page contents
-            include('tpl/layouts/__layout_dashboard.tpl.php');
+            include('tpl/contents/__content_dashboard.tpl.php');
 
             //Build page with contents
             $this->addPage($titles, $details);
@@ -841,14 +941,14 @@ class Tea_Theme_Options
         else
         {
             //Get network connections page contents
-            include('tpl/layouts/__layout_connections.tpl.php');
+            include('tpl/contents/__content_connections.tpl.php');
 
             //Build page with contents
             $this->addPage($titles, $details);
             unset($titles, $details);
 
             //Get documentation page contents
-            include('tpl/layouts/__layout_documentation.tpl.php');
+            include('tpl/contents/__content_documentation.tpl.php');
 
             //Build page with contents
             $this->addPage($titles, $details);
@@ -895,9 +995,8 @@ class Tea_Theme_Options
      * Build each type content.
      *
      * @param array $contents Contains all data
-     * @param bool $group Define if we are in group display or not
      *
-     * @since Tea Theme Options 1.3.2
+     * @since Tea Theme Options 1.4.0
      */
     protected function buildType($contents)
     {
@@ -907,1385 +1006,62 @@ class Tea_Theme_Options
             return false;
         }
 
-        //Get all fields without ID
-        $do_not_have_ids = $this->getDefaults('withoutids');
+        //Get includes
+        $includes = $this->getIncludes();
+
+        //Get all default fields in the Tea T.O. package
+        $defaults_fields = $this->getFields();
 
         //Iteration on all array
         foreach ($contents as $key => $content)
         {
-            //Check if an id is defined at least
-            if (!isset($content['id']) && !in_array($content['type'], $do_not_have_ids))
+            //Get type
+            $type = $content['type'];
+
+            //Check if the asked field is unknown
+            if (!in_array($type, $defaults_fields))
             {
-                $this->adminmessage = sprintf(__('Something went wrong in your parameters definition: no id is defined for your <b>%s</b> field!', TTO_I18N), $content['type']);
-                //$this->__showAdminMessage();
+                $this->adminmessage = sprintf(__('Something went wrong in your parameters definition with the id <b>%s</b>: the defined type is unknown!', TTO_I18N), $content['id']);
                 continue;
             }
 
-            //Get the right template
-
-            //Dashboard input
-            if ('dashboard' == $content['type'])
+            //Set types in special case
+            if(in_array($type, array('categories', 'menus', 'pages', 'posts', 'posttypes', 'tags', 'wordpress')))
             {
-                $this->__fieldDashboard($content);
+                $type = 'wordpress';
             }
 
-            //Display inputs
-            else if ('br' == $content['type'])
+            //Set vars
+            $class = 'Tea_Fields_' . ucfirst($type);
+            $inc = TTO_PATH . 'classes/fields/' . $type . '/class-tea-fields-' . $type . '.php';
+            $includes = $this->getIncludes();
+
+            //Include class field
+            if (!isset($includes[$type]))
             {
-                $this->__fieldBr();
-            }
-            else if ('features' == $content['type'])
-            {
-               $this->__fieldFeatures($content);
-            }
-            else if ('heading' == $content['type'])
-            {
-                $this->__fieldHeading($content);
-            }
-            else if('hr' == $content['type'])
-            {
-                $this->__fieldHr();
-            }
-            else if('list' == $content['type'])
-            {
-                $this->__fieldList($content);
-            }
-            else if('p' == $content['type'])
-            {
-                $this->__fieldP($content);
+                //Set the include
+                $this->setIncludes($type);
+
+                //Check if the class file exists
+                if (!file_exists($inc))
+                {
+                    $this->adminmessage = sprintf(__('Something went wrong in your parameters definition: the file <b>%s</b> does not exist!', TTO_I18N), $inc);
+                    continue;
+                }
+
+                //Require file
+                require_once($inc);
             }
 
-            //Normal inputs
-            else if(in_array($content['type'], array('checkbox', 'radio', 'select', 'multiselect')))
-            {
-                $this->__fieldChoice($content['type'], $content);
-            }
-            else if('hidden' == $content['type'])
-            {
-                $this->__fieldHidden($content);
-            }
-            else if('text' == $content['type'])
-            {
-                $this->__fieldText($content);
-            }
-            else if('textarea' == $content['type'])
-            {
-                $this->__fieldTextarea($content);
-            }
-
-            //Special inputs
-            else if('background' == $content['type'])
-            {
-                $this->__fieldBackground($content);
-            }
-            else if('color' == $content['type'])
-            {
-                $this->__fieldColor($content);
-            }
-            else if('font' == $content['type'])
-            {
-                $this->__fieldFont($content);
-            }
-            else if('include' == $content['type'])
-            {
-                $this->__fieldInclude($content);
-            }
-            else if('rte' == $content['type'])
-            {
-                $this->__fieldRTE($content);
-            }
-            else if('social' == $content['type'])
-            {
-                $this->__fieldSocial($content);
-            }
-            else if('upload' == $content['type'])
-            {
-                $this->__fieldUpload($content);
-            }
-
-            //Wordpress inputs
-            else if(in_array($content['type'], array('categories', 'menus', 'pages', 'posts', 'posttypes', 'tags', 'wordpress')))
-            {
-                $this->__fieldWordpressContents($content);
-            }
-
-            //Specials
-            else if ('flickr' == $content['type'])
-            {
-                $this->__fieldFlickr($content);
-            }
-            else if ('instagram' == $content['type'])
-            {
-                $this->__fieldInstagram($content);
-            }
-            else if ('twitter' == $content['type'])
-            {
-                $this->__fieldTwitter($content);
-            }
-
-            //Default action
-            else
-            {
-                $this->adminmessage = sprintf(__('Something went wrong in your parameters definition with the id <b>%s</b>: the defined type is unknown!', TTO_I18N), $content['id']);
-                //$this->__showAdminMessage();
-            }
+            //Make the magic
+            $field = new $class();
+            $field->templatePages($content);
         }
     }
-
-
-    //--------------------------------------------------------------------------//
 
     /**
      * CONTENTS METHODS
      **/
-
-
-    //-------------------------------------//
-
-    /**
-     * Build dashboard component.
-     *
-     * @param array $content Contains all data
-     *
-     * @since Tea Theme Options 1.3.0
-     */
-    protected function __fieldDashboard($content)
-    {
-        //Default variables
-        $title = isset($content['title']) ? $content['title'] : __('Tea Dashboard', TTO_I18N);
-        $page = empty($this->current) ? $this->identifier : $this->current;
-
-        //Get pages and contents
-        $pages = $this->getOption('tea_config_pages', array());
-        $cpts = $this->getOption('tea_config_cpts', array());
-
-        //Get lists
-        $bgdetails = $this->getDefaults('background-details');
-        $bgimages = $this->getDefaults('images');
-        $fonts = $this->getDefaults('fonts');
-        $typesgood = $this->getDefaults('types');
-        $types = $this->getDefaults('typesraw');
-        $choices = $this->getDefaults('typeschoices');
-        $networks = $this->getDefaults('typesnetworks');
-        $socials = $this->getDefaults('social');
-        $texts = $this->getDefaults('text');
-        $wordpress = $this->getDefaults('typeswordpress');
-
-        //Get icons
-        $urlsocial = $this->getDirectory() . '/img/social/icon-';
-
-        //Define ajax vars
-        $action = TTO_ACTION;
-        $nonce = esc_js(wp_create_nonce(TTO_NONCE));
-        $ajax = admin_url() . 'admin-ajax.php';
-
-        //Count pages and default pages
-        $count_page = count($pages);
-        $count_cpt = count($cpts);
-
-        //Get template
-        include('tpl/fields/__field_dashboard.tpl.php');
-    }
-
-
-    //-------------------------------------//
-
-    /**
-     * Build br component.
-     *
-     * @since Tea Theme Options 1.1.0
-     */
-    protected function __fieldBr()
-    {
-        //Get template
-        include('tpl/fields/__field_br.tpl.php');
-    }
-
-    /**
-     * Build features component.
-     *
-     * @param array $content Contains all data
-     *
-     * @since Tea Theme Options 1.2.2
-     */
-    protected function __fieldFeatures($content)
-    {
-        //Default variables
-        $title = isset($content['title']) ? $content['title'] : __('Tea Features', TTO_I18N);
-        $contents = isset($content['contents']) ? $content['contents'] : array();
-
-        //Get template
-        include('tpl/fields/__field_features.tpl.php');
-    }
-
-    /**
-     * Build heading component.
-     *
-     * @param array $content Contains all data
-     *
-     * @since Tea Theme Options 1.0.1
-     */
-    protected function __fieldHeading($content)
-    {
-        //Default variables
-        $title = isset($content['title']) ? $content['title'] : __('Tea Heading', TTO_I18N);
-
-        //Get template
-        include('tpl/fields/__field_heading.tpl.php');
-    }
-
-    /**
-     * Build hr component.
-     *
-     * @since Tea Theme Options 1.1.0
-     */
-    protected function __fieldHr()
-    {
-        //Get template
-        include('tpl/fields/__field_hr.tpl.php');
-    }
-
-    /**
-     * Build list component (ul > li).
-     *
-     * @param array $content Contains all data
-     *
-     * @since Tea Theme Options 1.2.2
-     */
-    protected function __fieldList($content)
-    {
-        //Default variables
-        $li = isset($content['contents']) ? $content['contents'] : array();
-
-        //Get template
-        include('tpl/fields/__field_list.tpl.php');
-    }
-
-    /**
-     * Build p component.
-     *
-     * @param array $content Contains all data
-     *
-     * @since Tea Theme Options 1.2.1
-     */
-    protected function __fieldP($content)
-    {
-        //Default variables
-        $content = isset($content['content']) ? $content['content'] : '';
-
-        //Get template
-        include('tpl/fields/__field_p.tpl.php');
-    }
-
-
-    //-------------------------------------//
-
-    /**
-     * Build choice component.
-     *
-     * @param string $type Contains the type's field
-     * @param array $content Contains all data
-     * @param bool $group Define if the field is displayed in group or not
-     *
-     * @since Tea Theme Options 1.2.6
-     */
-    protected function __fieldChoice($type, $content)
-    {
-        //Default variables
-        $id = $content['id'];
-        $title = isset($content['title']) ? $content['title'] : __('Tea Choice', TTO_I18N);
-        $options = isset($content['options']) ? $content['options'] : array();
-        $description = isset($content['description']) ? $content['description'] : '';
-
-        //Expand & multiple variables
-        $multiple = isset($content['multiple']) ? $content['multiple'] : false;
-        $type = 'select' == $type && $multiple ? 'multiselect' : $type;
-
-        //Check types
-        if ('checkbox' == $type || 'multiselect' == $type)
-        {
-            //Define default value
-            $std = isset($content['std']) ? $content['std'] : array();
-
-            //Check selected
-            $vals = $this->getOption($id, $std);
-            $vals = empty($vals) ? array(0) : (is_array($vals) ? $vals : array($vals));
-        }
-        else
-        {
-            //Define default value
-            $std = isset($content['std']) ? $content['std'] : '';
-
-            //Check selected
-            $val = $this->getOption($id, $std);
-        }
-
-        //Get template
-        include('tpl/fields/__field_' . $type . '.tpl.php');
-    }
-
-    /**
-     * Build hidden component.
-     *
-     * @param array $content Contains all data
-     *
-     * @since Tea Theme Options 1.3.0
-     */
-    protected function __fieldHidden($content)
-    {
-        //Default variables
-        $id = $content['id'];
-        $title = isset($content['title']) ? $content['title'] : '';
-
-        //Check selected
-        $val = $this->getOption($id, $title);
-
-        //Get template
-        include('tpl/fields/__field_hidden.tpl.php');
-    }
-
-    /**
-     * Build text component.
-     *
-     * @param array $content Contains all data
-     * @param bool $group Define if the field is displayed in group or not
-     *
-     * @since Tea Theme Options 1.2.6
-     */
-    protected function __fieldText($content)
-    {
-        //Default variables
-        $id = $content['id'];
-        $title = isset($content['title']) ? $content['title'] : __('Tea Text', TTO_I18N);
-        $std = isset($content['std']) ? $content['std'] : '';
-        $placeholder = isset($content['placeholder']) ? 'placeholder="' . $content['placeholder'] . '"' : '';
-        $maxlength = isset($content['maxlength']) ? 'maxlength="' . $content['maxlength'] . '"' : '';
-        $description = isset($content['description']) ? $content['description'] : '';
-        $options = isset($content['options']) ? $content['options'] : array();
-
-        //Special variables
-        $min = $max = $step = '';
-        $options['type'] = !isset($options['type']) || empty($options['type']) ? 'text' : $options['type'];
-
-        //Check options
-        if ('number' == $options['type'] || 'range' == $options['type'])
-        {
-            //Infos
-            $type = $options['type'];
-            //Special variables
-            $min = isset($options['min']) ? 'min="' . $options['min'] . '"' : 'min="1"';
-            $max = isset($options['max']) ? 'max="' . $options['max'] . '"' : 'max="50"';
-            $step = isset($options['step']) ? 'step="' . $options['step'] . '"' : 'step="1"';
-        }
-        else
-        {
-            //Infos
-            $type = $options['type'];
-        }
-
-        //Check selected
-        $val = $this->getOption($id, $std);
-        $val = stripslashes($val);
-
-        //Get template
-        include('tpl/fields/__field_text.tpl.php');
-    }
-
-    /**
-     * Build textarea component.
-     *
-     * @param array $content Contains all data
-     * @param bool $group Define if the field is displayed in group or not
-     *
-     * @since Tea Theme Options 1.1.1
-     */
-    protected function __fieldTextarea($content)
-    {
-        //Default variables
-        $id = $content['id'];
-        $title = isset($content['title']) ? $content['title'] : __('Tea Textarea', TTO_I18N);
-        $std = isset($content['std']) ? $content['std'] : '';
-        $placeholder = isset($content['placeholder']) ? 'placeholder="' . $content['placeholder'] . '"' : '';
-        $description = isset($content['description']) ? $content['description'] : '';
-        $rows = isset($content['rows']) ? $content['rows'] : '8';
-
-        //Check selected
-        $val = $this->getOption($id, $std);
-        $val = stripslashes($val);
-
-        //Get template
-        include('tpl/fields/__field_textarea.tpl.php');
-    }
-
-
-    //-------------------------------------//
-
-    /**
-     * Build background component.
-     *
-     * @param array $content Contains all data
-     * @param bool $group Define if the field is displayed in group or not
-     *
-     * @since Tea Theme Options 1.3.0
-     */
-    protected function __fieldBackground($content)
-    {
-        //Default variables
-        $id = $content['id'];
-        $title = isset($content['title']) ? $content['title'] : __('Tea Background', TTO_I18N);
-        $height = isset($content['height']) ? $content['height'] : '60';
-        $width = isset($content['width']) ? $content['width'] : '150';
-        $description = isset($content['description']) ? $content['description'] : '';
-        $defaults = isset($content['default']) && (true === $content['default'] || '1' == $content['default']) ? true : false;
-        $can_upload = $this->can_upload;
-        $delete = __('Delete selection', TTO_I18N);
-
-        //Default values
-        $std = isset($content['std']) ? $content['std'] : array(
-            'image' => '',
-            'image_custom' => '',
-            'color' => '',
-            'position' => array(
-                'x' => 'left',
-                'y' => 'top'
-            ),
-            'repeat' => 'repeat'
-        );
-
-        //Get options
-        $options = isset($content['options']) ? $content['options'] : array();
-
-        if ($defaults)
-        {
-            $defaults = $this->getDefaults('images');
-            $options = array_merge($defaults, $options);
-        }
-
-        //Positions
-        $details = $this->getDefaults('background-details');
-
-        //Get value
-        $val = $this->getOption($id, $std);
-
-        //Get template
-        include('tpl/fields/__field_background.tpl.php');
-    }
-
-    /**
-     * Build color component.
-     *
-     * @param array $content Contains all data
-     * @param bool $group Define if the field is displayed in group or not
-     *
-     * @since Tea Theme Options 1.2.0
-     */
-    protected function __fieldColor($content)
-    {
-        //Default variables
-        $id = $content['id'];
-        $title = isset($content['title']) ? $content['title'] : __('Tea Color', TTO_I18N);
-        $std = isset($content['std']) ? $content['std'] : '';
-        $description = isset($content['description']) ? $content['description'] : '';
-
-        //Check selected
-        $val = $this->getOption($id, $std);
-
-        //Get template
-        include('tpl/fields/__field_color.tpl.php');
-    }
-
-    /**
-     * Build font component.
-     *
-     * @param array $content Contains all data
-     * @param bool $group Define if the field is displayed in group or not
-     *
-     * @since Tea Theme Options 1.2.6
-     */
-    protected function __fieldFont($content)
-    {
-        //Default variables
-        $id = $content['id'];
-        $title = isset($content['title']) ? $content['title'] : __('Tea Font', TTO_I18N);
-        $std = isset($content['std']) ? $content['std'] : '';
-        $description = isset($content['description']) ? $content['description'] : '';
-        $defaults = isset($content['default']) && (true === $content['default'] || '1' == $content['default']) ? true : false;
-
-        //Get options
-        $options = isset($content['options']) ? $content['options'] : array();
-
-        if ($defaults)
-        {
-            $defaults = $this->getDefaults('fonts');
-            $options = array_merge($defaults, $options);
-        }
-
-        //Get includes
-        $includes = $this->getIncludes();
-        $style = true;
-        $linkstylesheet = '';
-        $gfontstyle = '';
-
-        //Check if Google Font has already been included
-        if (!isset($includes['googlefonts']))
-        {
-            $style = false;
-            $this->setIncludes('googlefonts');
-
-            //Define our stylesheets
-            foreach ($options as $option)
-            {
-                if (empty($option[0]) || 'sansserif' == $option[0])
-                {
-                    continue;
-                }
-
-                $linkstylesheet .= '<link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=' . $option[0] . ':' . $option[2] . '" />' . "\n";
-                $gfontstyle .= '.gfont_' . str_replace(' ', '_', $option[1]) . ' {font-family:\'' . $option[1] . '\',sans-serif;}' . "\n";
-            }
-        }
-
-        //Radio selected
-        $val = $this->getOption($id, $std);
-
-        //Get template
-        include('tpl/fields/__field_font.tpl.php');
-    }
-
-    /**
-     * Build include component.
-     *
-     * @param array $content Contains all data
-     *
-     * @since Tea Theme Options 1.2.6
-     */
-    protected function __fieldInclude($content)
-    {
-        //Default variables
-        $title = isset($content['title']) ? $content['title'] : __('Tea Include', TTO_I18N);
-        $file = isset($content['file']) ? $content['file'] : false;
-
-        //Get template
-        include('tpl/fields/__field_include.tpl.php');
-    }
-
-    /**
-     * Build RTE component.
-     *
-     * @param array $content Contains all data
-     * @param bool $group Define if the field is displayed in group or not
-     *
-     * @since Tea Theme Options 1.2.8
-     */
-    protected function __fieldRTE($content)
-    {
-        //Default variables
-        $id = $content['id'];
-        $title = isset($content['title']) ? $content['title'] : __('Tea RTE', TTO_I18N);
-        $std = isset($content['std']) ? $content['std'] : '';
-        $description = isset($content['description']) ? $content['description'] : '';
-
-        //Check selected
-        $val = $this->getOption($id, $std);
-        $val = stripslashes($val);
-
-        //Get template
-        include('tpl/fields/__field_rte.tpl.php');
-    }
-
-    /**
-     * Build social component.
-     *
-     * @param array $content Contains all data
-     * @param bool $group Define if the field is displayed in group or not
-     *
-     * @since Tea Theme Options 1.2.6
-     */
-    protected function __fieldSocial($content)
-    {
-        //Default variables
-        $id = $content['id'];
-        $title = isset($content['title']) ? $content['title'] : __('Tea Social', TTO_I18N);
-        $std = isset($content['std']) ? $content['std'] : array();
-        $description = isset($content['description']) ? $content['description'] : '';
-        $url = $this->getDirectory() . 'img/social/icon-';
-
-        //Get options
-        $default = isset($content['default']) ? $content['default'] : array();
-        $options = $this->getDefaults('social', $default);
-
-        //Get values
-        $val = $this->getOption($id, $std);
-
-        //Get template
-        include('tpl/fields/__field_social.tpl.php');
-    }
-
-    /**
-     * Build upload component.
-     *
-     * @param array $content Contains all data
-     * @param bool $group Define if the field is displayed in group or not
-     *
-     * @since Tea Theme Options 1.2.0
-     */
-    protected function __fieldUpload($content)
-    {
-        //Default variables
-        $id = $content['id'];
-        $title = isset($content['title']) ? $content['title'] : __('Tea Upload', TTO_I18N);
-        $std = isset($content['std']) ? $content['std'] : '';
-        $library = isset($content['library']) ? $content['library'] : 'image';
-        $description = isset($content['description']) ? $content['description'] : '';
-        $multiple = isset($content['multiple']) && true == $content['multiple'] ? '1' : '0';
-        $can_upload = $this->can_upload;
-        $delete = __('Delete selection', TTO_I18N);
-
-        //Check selected
-        $val = $this->getOption($id, $std);
-
-        //Get template
-        include('tpl/fields/__field_upload.tpl.php');
-    }
-
-
-    //-------------------------------------//
-
-    /**
-     * Build wordpress contents component.
-     *
-     * @uses get_categories()
-     * @uses get_pages()
-     * @uses get_post_types()
-     * @uses get_the_tags()
-     * @uses wp_get_nav_menus()
-     * @uses wp_get_recent_posts()
-     * @param array $content Contains all data
-     * @param bool $group Define if the field is displayed in group or not
-     *
-     * @since Tea Theme Options 1.2.7
-     */
-    protected function __fieldWordpressContents($content)
-    {
-        //Default variables
-        $id = $content['id'];
-        $type = 'wordpress' == $content['type'] ? $content['mode'] : $content['type'];
-        $title = isset($content['title']) ? $content['title'] : __('Tea Wordpress Contents', TTO_I18N);
-        $multiple = isset($content['multiple']) ? $content['multiple'] : false;
-        $description = isset($content['description']) ? $content['description'] : '';
-
-        //Access the WordPress Categories via an Array
-        if (empty($this->wp_contents) || !isset($this->wp_contents[$type]))
-        {
-            $this->wp_contents[$type] = array();
-
-            //Set the first item
-            if (!$multiple)
-            {
-                $this->wp_contents[$type][-1] = '---';
-            }
-
-            //Get asked contents
-
-            //Menus
-            if ('menus' == $type)
-            {
-                //Build request
-                $menus_obj = wp_get_nav_menus(array('hide_empty' => false, 'orderby' => 'none'));
-
-                //Iterate on menus
-                foreach ($menus_obj as $menu)
-                {
-                    //For Wordpress version < 3.0
-                    if (empty($menu->term_id))
-                    {
-                        continue;
-                    }
-
-                    //Get the id and the name
-                    $this->wp_contents[$type][$menu->term_id] = $menu->name;
-                }
-            }
-            //Pages
-            else if ('pages' == $type)
-            {
-                //Build request
-                $pages_obj = get_pages(array('sort_column' => 'post_parent,menu_order'));
-
-                //Iterate on pages
-                foreach ($pages_obj as $pag)
-                {
-                    //For Wordpress version < 3.0
-                    if (empty($pag->ID))
-                    {
-                        continue;
-                    }
-
-                    //Get the id and the name
-                    $this->wp_contents[$type][$pag->ID] = $pag->post_title;
-                }
-            }
-            //Posts
-            else if ('posts' == $type)
-            {
-                //Get vars
-                $post = !isset($content['posttype']) ? 'post' : (is_array($content['posttype']) ? implode(',', $content['posttype']) : $content['posttype']);
-                $number = isset($content['number']) ? $content['number'] : 50;
-
-                //Build request
-                $posts_obj = wp_get_recent_posts(array('numberposts' => $number, 'post_type' => $post, 'post_status' => 'publish'), OBJECT);
-
-                //Iterate on posts
-                foreach ($posts_obj as $pos)
-                {
-                    //For Wordpress version < 3.0
-                    if (empty($pos->ID))
-                    {
-                        continue;
-                    }
-
-                    //Get the id and the name
-                    $this->wp_contents[$type][$pos->ID] = $pos->post_title;
-                }
-            }
-            //Post types
-            else if ('posttypes' == $type)
-            {
-                //Build request
-                $types_obj = get_post_types(array(), 'object');
-
-                //Iterate on posttypes
-                foreach ($types_obj as $typ)
-                {
-                    //Get the the name
-                    $this->wp_contents[$type][$typ->name] = $typ->labels->name;
-                }
-            }
-            //Tags
-            else if ('tags' == $type)
-            {
-                //Build request
-                $tags_obj = get_the_tags();
-
-                //Iterate on tags
-                foreach ($tags_obj as $tag)
-                {
-                    //Get the id and the name
-                    $this->wp_contents[$type][$tag->term_id] = $tag->name;
-                }
-            }
-            //Categories
-            else
-            {
-                //Build request
-                $categories_obj = get_categories(array('hide_empty' => 0));
-
-                //Iterate on categories
-                foreach ($categories_obj as $cat)
-                {
-                    //For Wordpress version < 3.0
-                    if (empty($cat->cat_ID))
-                    {
-                        continue;
-                    }
-
-                    //Get the id and the name
-                    $this->wp_contents[$type][$cat->cat_ID] = $cat->cat_name;
-                }
-            }
-        }
-
-        //Set the categories
-        $contents = $this->wp_contents[$type];
-
-        //Check selected
-        $vals = $this->getOption($id, array());
-        $vals = empty($vals) ? array(0) : (is_array($vals) ? $vals : array($vals));
-
-        //Get template
-        include('tpl/fields/__field_wordpress.tpl.php');
-    }
-
-
-    //-------------------------------------//
-
-    /**
-     * Build FlickR component.
-     *
-     * @param array $content Contains all data
-     *
-     * @since Tea Theme Options 1.3.0
-     */
-    protected function __fieldFlickr($content)
-    {
-        //Default variables
-        $title = isset($content['title']) ? $content['title'] : __('Tea FlickR', TTO_I18N);
-        $description = isset($content['description']) ? $content['description'] : '';
-        $icon = $this->getDirectory() . '/img/social/icon-flickr.png';
-        $page = empty($this->current) ? $this->identifier : $this->current;
-        $update = $this->getOption('tea_flickr_connection_update', '');
-        $display_form = false;
-
-        //Check if we display form or user informations
-        $user_info = $this->getOption('tea_flickr_user_info', array());
-
-        if (false === $user_info || empty($user_info))
-        {
-            //Default vars
-            $display_form = true;
-        }
-        else
-        {
-            //Get user Flickr info from DB
-            $user_details = $this->getOption('tea_flickr_user_details', array());
-            $user_details = false === $user_details ? array() : $user_details;
-
-            //Get recent photos from DB
-            $user_recent = $this->getOption('tea_flickr_user_recent', array());
-            $user_recent = false === $user_recent ? array() : $user_recent;
-
-            //Display date of update
-            $update = false === $update || empty($update) ? '' : $update;
-        }
-
-        //Get template
-        include('tpl/fields/__field_network_flickr.tpl.php');
-    }
-
-    /**
-     * Build Instagram component.
-     *
-     * @param array $content Contains all data
-     *
-     * @since Tea Theme Options 1.3.0
-     */
-    protected function __fieldInstagram($content)
-    {
-        //Default variables
-        $title = isset($content['title']) ? $content['title'] : __('Tea Instagram', TTO_I18N);
-        $description = isset($content['description']) ? $content['description'] : '';
-        $icon = $this->getDirectory() . '/img/social/icon-instagram.png';
-        $page = empty($this->current) ? $this->identifier : $this->current;
-        $update = $this->getOption('tea_instagram_connection_update', '');
-        $display_form = false;
-
-        //Check if we display form or user informations
-        $token = $this->getOption('tea_instagram_access_token', '');
-
-        if (false === $token || empty($token))
-        {
-            //Default vars
-            $display_form = true;
-        }
-        else
-        {
-            //Get user Instagram info from DB
-            $user_info = $this->getOption('tea_instagram_user_info', array());
-            $user_info = false === $user_info ? array() : $user_info;
-
-            //Get recent photos from DB
-            $user_recent = $this->getOption('tea_instagram_user_recent', array());
-            $user_recent = false === $user_recent ? array() : $user_recent;
-
-            //Display date of update
-            $update = false === $update || empty($update) ? '' : $update;
-        }
-
-        //Get template
-        include('tpl/fields/__field_network_instagram.tpl.php');
-    }
-
-    /**
-     * Build Instagram component.
-     *
-     * @param array $content Contains all data
-     *
-     * @since Tea Theme Options 1.3.0
-     */
-    protected function __fieldTwitter($content)
-    {
-        //Default variables
-        $title = isset($content['title']) ? $content['title'] : __('Tea Twitter', TTO_I18N);
-        $description = isset($content['description']) ? $content['description'] : '';
-        $icon = $this->getDirectory() . '/img/social/icon-twitter.png';
-        $page = empty($this->current) ? $this->identifier : $this->current;
-        $update = $this->getOption('tea_twitter_connection_update', '');
-        $display_form = false;
-
-        //Check if we display form or user informations
-        $token = $this->getOption('tea_twitter_access_token', '');
-
-        if (false === $token || empty($token))
-        {
-            //Default vars
-            $display_form = true;
-        }
-        else
-        {
-            //Get user Instagram info from DB
-            $user_info = $this->getOption('tea_twitter_user_info', array());
-            $user_info = false === $user_info ? array() : $user_info;
-
-            //Get recent photos from DB
-            $user_recent = $this->getOption('tea_twitter_user_recent', array());
-            $user_recent = false === $user_recent ? array() : $user_recent;
-
-            //Display date of update
-            $update = false === $update || empty($update) ? '' : $update;
-        }
-
-        //Get template
-        include('tpl/fields/__field_network_twitter.tpl.php');
-    }
-
-
-    //-------------------------------------//
-
-    /**
-     * Build dispatch method.
-     *
-     * @param array $request Contains all data sent in $_REQUEST method
-     *
-     * @since Tea Theme Options 1.3.2
-     */
-    protected function __networkDispatch($request)
-    {
-        //Check if a network connection is asked
-        if (!isset($request['tea_to_network']))
-        {
-            $this->adminmessage = __('Something went wrong in your parameters definition. You need to specify a network to make the connection happens.', TTO_I18N);
-            return false;
-        }
-
-        //...Or update connection network
-        if (isset($request['tea_to_connection']))
-        {
-            $this->__networkConnection($request);
-        }
-        //...Or update disconnection network
-        else if (isset($request['tea_to_disconnection']))
-        {
-            $this->__networkDisconnection($request);
-        }
-        //...Or update data from network
-        else if (isset($request['tea_to_update']))
-        {
-            $this->updateNetworks($request);
-        }
-    }
-
-    /**
-     * Build data from the asked network.
-     *
-     * @uses add_query_arg()
-     * @uses admin_url()
-     * @uses header()
-     * @param array $request Contains all data sent in $_REQUEST method
-     *
-     * @since Tea Theme Options 1.3.2
-     */
-    protected function __networkCallback($request)
-    {
-        //Check if a network connection is asked
-        if (!isset($request['tea_to_callback']))
-        {
-            $this->adminmessage = __('Something went wrong in your parameters definition. You need to specify a callback network to update the informations.', TTO_I18N);
-            return false;
-        }
-
-        //Default vars
-        $page = empty($this->current) ? $this->identifier : $this->current;
-
-        //Check Instagram
-        if (isset($request['instagram_token']))
-        {
-            //Update DB with the token
-            $token = $request['instagram_token'];
-            _set_option('tea_instagram_access_token', $token);
-
-            //Get all data
-            $request['tea_to_network'] = 'instagram';
-            $this->updateNetworks($request);
-        }
-        //Check Twitter
-        else if (isset($request['twitter_token']))
-        {
-            //Update DB with the token
-            $token = array(
-                'oauth_token' => $request['twitter_token'],
-                'oauth_token_secret' => $request['twitter_secret']
-            );
-            _set_option('tea_twitter_access_token', $token);
-
-            //Get all data
-            $request['tea_to_network'] = 'twitter';
-            $this->updateNetworks($request);
-        }
-
-        //Build callback
-        $return = add_query_arg(array('page' => $page), admin_url('/admin.php'));
-
-        //Redirect
-        header('Location: ' . $return, false, 307);
-        exit;
-    }
-
-    /**
-     * Build connection to the asked network.
-     *
-     * @uses add_query_arg()
-     * @uses admin_url()
-     * @uses header()
-     * @param array $request Contains all data sent in $_REQUEST method
-     *
-     * @since Tea Theme Options 1.3.2
-     */
-    protected function __networkConnection($request)
-    {
-        //Default vars
-        $page = empty($this->current) ? $this->identifier : $this->current;
-
-        //Check Instagram
-        if ('instagram' == $request['tea_to_network'])
-        {
-            //Build callback
-            $return = add_query_arg(array('page' => $page), admin_url('/admin.php'));
-            $uri = add_query_arg('return_uri', urlencode($return), TTO_INSTAGRAM);
-
-            //Redirect to network
-            header('Location: ' . $uri, false, 307);
-            exit;
-        }
-        //Check Flickr
-        else if ('flickr' == $request['tea_to_network'])
-        {
-            $request['tea_flickr_install'] = true;
-            $this->updateNetworks($request);
-        }
-        //Check Twitter
-        else if ('twitter' == $request['tea_to_network'])
-        {
-            //Build callback
-            $return = add_query_arg(array('page' => $page), admin_url('/admin.php'));
-            $uri = add_query_arg('return_uri', urlencode($return), TTO_TWITTER);
-
-            //Redirect to network
-            header('Location: ' . $uri, false, 307);
-            exit;
-        }
-    }
-
-    /**
-     * Build disconnection to the asked network.
-     *
-     * @uses add_query_arg()
-     * @uses admin_url()
-     * @uses header()
-     * @param array $request Contains all data sent in $_REQUEST method
-     *
-     * @since Tea Theme Options 1.3.0
-     */
-    protected function __networkDisconnection($request)
-    {
-        //Default vars
-        $page = empty($this->current) ? $this->identifier : $this->current;
-
-        //Check Instagram
-        if ('instagram' == $request['tea_to_network'])
-        {
-            //Delete all data from DB
-            _del_option('tea_instagram_access_token');
-            _del_option('tea_instagram_user_info');
-            _del_option('tea_instagram_user_recent');
-            _del_option('tea_instagram_connection_update');
-
-            //Build callback
-            $return = add_query_arg(array('page' => $page), admin_url('/admin.php'));
-            $uri = add_query_arg(array('return_uri' => urlencode($return), 'logout' => 'true'), TTO_INSTAGRAM);
-
-            //Redirect to network
-            header('Location: ' . $uri, false, 307);
-            exit;
-        }
-        //Check Flickr
-        else if ('flickr' == $request['tea_to_network'])
-        {
-            //Delete all data from DB
-            _del_option('tea_flickr_user_info');
-            _del_option('tea_flickr_user_details');
-            _del_option('tea_flickr_user_recent');
-            _del_option('tea_flickr_connection_update');
-
-        }
-        //Check Twitter
-        else if ('twitter' == $request['tea_to_network'])
-        {
-            //Delete all data from DB
-            _del_option('tea_twitter_access_token');
-            _del_option('tea_twitter_user_info');
-            _del_option('tea_twitter_user_recent');
-            _del_option('tea_twitter_connection_update');
-
-            //Build callback
-            $return = add_query_arg(array('page' => $page), admin_url('/admin.php'));
-            $uri = add_query_arg(array('return_uri' => urlencode($return), 'logout' => 'true'), TTO_TWITTER);
-
-            //Redirect to network
-            header('Location: ' . $uri, false, 307);
-            exit;
-        }
-    }
-
-
-    //--------------------------------------------------------------------------//
-
-    /**
-     * Return default values.
-     *
-     * @param string $return Define what to return
-     * @param array $wanted Usefull in social case to return only what the user wants
-     * @return array $defaults All defaults data provided by the Tea TO
-     *
-     * @since Tea Theme Options 1.3.0
-     */
-    protected function getDefaults($return = 'images', $wanted = array())
-    {
-        $defaults = array();
-        $directory = $this->getDirectory();
-
-        //Return defaults background values
-        if ('background-details' == $return)
-        {
-            $defaults = array(
-                'position'  => array(
-                    'x'     => array(
-                        'left'      => __('Left', TTO_I18N),
-                        'center'    => __('Center', TTO_I18N),
-                        'right'     => __('Right', TTO_I18N)
-                    ),
-                    'y'     => array(
-                        'top'       => __('Top', TTO_I18N),
-                        'middle'    => __('Middle', TTO_I18N),
-                        'bottom'    => __('Bottom', TTO_I18N)
-                    )
-                ),
-                'repeat'    => array(
-                    'no-repeat'     => __('Background is displayed only once.', TTO_I18N),
-                    'repeat-x'      => __('Background is repeated horizontally only.', TTO_I18N),
-                    'repeat-y'      => __('Background is repeated vertically only.', TTO_I18N),
-                    'repeat'        => __('Background is repeated.', TTO_I18N)
-                )
-            );
-        }
-        //Return defauls FLickr API keys
-        else if ('flickr' == $return)
-        {
-            $defaults = array(
-                'api_key'       => '202431176865b4c5f725087d26bd78af',
-                'api_secret'    => '2efaf89685c295ea'
-            );
-        }
-        //Return defaults font
-        else if ('fonts' == $return)
-        {
-            $defaults = array(
-                array('sansserif', 'Sans serif', ''),
-                array('Arvo', 'Arvo', '400,700'),
-                array('Bree+Serif', 'Bree Serif', '400'),
-                array('Cabin', 'Cabin', '400,500,600,700'),
-                array('Cantarell', 'Cantarell', '400,700'),
-                array('Copse', 'Copse', '400'),
-                array('Cuprum', 'Cuprum', '400,700'),
-                array('Droid+Sans', 'Droid Sans', '400,700'),
-                array('Lobster+Two', 'Lobster Two', '400,700'),
-                array('Open+Sans', 'Open Sans', '300,400,600,700,800'),
-                array('Oswald', 'Oswald', '300,400,700'),
-                array('Pacifico', 'Pacifico', '400'),
-                array('Patua+One', 'Patua One', '400'),
-                array('PT+Sans', 'PT Sans', '400,700'),
-                array('Puritan', 'Puritan', '400,700'),
-                array('Qwigley', 'Qwigley', '400'),
-                array('Titillium+Web', 'Titillium Web', '200,300,400,600,700,900'),
-                array('Vollkorn', 'Vollkorn', '400,700'),
-                array('Yanone+Kaffeesatz', 'Yanone Kaffeesatz', '200,300,400,700')
-            );
-        }
-        //Return defauls background images
-        else if ('images' == $return)
-        {
-            $url = $directory . 'img/patterns/';
-
-            $defaults = array(
-                $url . 'none.png'           => __('No background', TTO_I18N),
-                $url . 'bright_squares.png' => __('Bright squares', TTO_I18N),
-                $url . 'circles.png'        => __('Circles', TTO_I18N),
-                $url . 'crosses.png'        => __('Crosses', TTO_I18N),
-                $url . 'crosslines.png'     => __('Crosslines', TTO_I18N),
-                $url . 'cubes.png'          => __('Cubes', TTO_I18N),
-                $url . 'double_lined.png'   => __('Double lined', TTO_I18N),
-                $url . 'honeycomb.png'      => __('Honeycomb', TTO_I18N),
-                $url . 'linen.png'          => __('Linen', TTO_I18N),
-                $url . 'project_paper.png'  => __('Project paper', TTO_I18N),
-                $url . 'texture.png'        => __('Tetxure', TTO_I18N),
-                $url . 'vertical_lines.png' => __('Vertical lines', TTO_I18N),
-                $url . 'vichy.png'          => __('Vichy', TTO_I18N),
-                $url . 'wavecut.png'        => __('Wavecut', TTO_I18N),
-                $url . 'custom.png'         => 'CUSTOM'
-            );
-        }
-        //Return defaults social button
-        else if ('social' == $return)
-        {
-            $socials = array(
-                'addthis'       => array(),
-                'bloglovin'     => array(__('Follow me on Bloglovin', TTO_I18N), __('http://www.bloglovin.com/blog/__userid__/__username__', TTO_I18N)),
-                'deviantart'    => array(__('Follow me on Deviantart', TTO_I18N), __('http://__username__.deviantart.com/', TTO_I18N)),
-                'dribbble'      => array(__('Follow me on Dribbble', TTO_I18N), __('http://dribbble.com/__username__', TTO_I18N)),
-                'facebook'      => array(__('Follow me on Facebook', TTO_I18N), __('http://www.facebook.com/__username__', TTO_I18N)),
-                'flickr'        => array(__('Follow me on Flickr', TTO_I18N), __('http://www.flickr.com/photos/__username__', TTO_I18N)),
-                'forrst'        => array(__('Follow me on Forrst', TTO_I18N), __('http://forrst.com/people/__username__', TTO_I18N)),
-                'friendfeed'    => array(__('Follow me on FriendFeed', TTO_I18N), __('http://friendfeed.com/__username__', TTO_I18N)),
-                'hellocoton'    => array(__('Follow me on Hellocoton', TTO_I18N), __('http://www.hellocoton.fr/mapage/__username__', TTO_I18N)),
-                'googleplus'    => array(__('Follow me on Google+', TTO_I18N), __('http://plus.google.com/__username__', TTO_I18N)),
-                'instagram'     => array(__('Follow me on Instagram', TTO_I18N), __('http://www.instagram.com/__username__', TTO_I18N)),
-                'lastfm'        => array(__('Follow me on LastFM', TTO_I18N), __('http://www.lastfm.fr/user/__username__', TTO_I18N)),
-                'linkedin'      => array(__('Follow me on LinkedIn', TTO_I18N), __('http://fr.linkedin.com/in/__username__', TTO_I18N)),
-                'pinterest'     => array(__('Follow me on Pinterest', TTO_I18N), __('http://pinterest.com/__username__', TTO_I18N)),
-                'rss'           => array(__('Subscribe to my RSS feed', TTO_I18N)),
-                'skype'         => array(__('Connect us on Skype', TTO_I18N)),
-                'tumblr'        => array(__('Follow me on Tumblr', TTO_I18N), __('http://', TTO_I18N)),
-                'twitter'       => array(__('Follow me on Twitter', TTO_I18N), __('http://www.twitter.com/__username__', TTO_I18N)),
-                'vimeo'         => array(__('Follow me on Vimeo', TTO_I18N), __('http://www.vimeo.com/__username__', TTO_I18N)),
-                'youtube'       => array(__('Follow me on Youtube', TTO_I18N), __('http://www.youtube.com/user/__username__', TTO_I18N))
-            );
-
-            $defaults = array();
-
-            //Return only wanted
-            if (isset($wanted) && !empty($wanted))
-            {
-                foreach ($wanted as $want)
-                {
-                    if (array_key_exists($want, $socials))
-                    {
-                        $defaults[$want] = $socials[$want];
-                    }
-                }
-            }
-            else
-            {
-                $defaults = $socials;
-            }
-        }
-        //Return defauls Twitter API keys
-        else if ('twitter' == $return)
-        {
-            $defaults = array(
-                'consumer_key'      => 'T6K5yb4oGrS5UTZxsvDdhw',
-                'consumer_secret'   => 'gpamCLVGgNZGN3jprq40A4JD5KzQ2PLqFIu5lUQyw'
-            );
-        }
-        //Return defaults text types
-        else if ('text' == $return)
-        {
-            $defaults = array(
-                'text' => __('Text', TTO_I18N),
-                'email' => __('Email', TTO_I18N),
-                'number' => __('Number', TTO_I18N),
-                'range' => __('Range', TTO_I18N),
-                'password' => __('Password', TTO_I18N),
-                'search' => __('Search', TTO_I18N),
-                'url' => __('URL', TTO_I18N)
-            );
-        }
-        //Return defauls TTO types
-        else if ('types' == $return)
-        {
-            $defaults = array(
-                __('Display fields', TTO_I18N) => array(
-                    'br' => __('Breakline', TTO_I18N),
-                    'heading' => __('Heading', TTO_I18N),
-                    'hr' => __('Horizontal rule', TTO_I18N),
-                    'list' => __('List items', TTO_I18N),
-                    'p' => __('Paragraphe', TTO_I18N)
-                ),
-                __('Common fields', TTO_I18N) => array(
-                    'checkbox' => __('Checkbox', TTO_I18N),
-                    'hidden' => __('Hidden field', TTO_I18N),
-                    'multiselect' => __('Multiselect', TTO_I18N),
-                    'radio' => __('Radio', TTO_I18N),
-                    'select' => __('Select', TTO_I18N),
-                    'text' => __('Basic text, email, number and more', TTO_I18N),
-                    'textarea' => __('Textarea', TTO_I18N)
-                ),
-                __('Special fields', TTO_I18N) => array(
-                    'background' => __('Background', TTO_I18N),
-                    'color' => __('Color', TTO_I18N),
-                    'font' => __('Google Fonts', TTO_I18N),
-                    'include' => __('Include PHP file', TTO_I18N),
-                    'rte' => __('Wordpress RTE', TTO_I18N),
-                    'social' => __('Social', TTO_I18N),
-                    'upload' => __('Wordpress Upload', TTO_I18N)
-                ),
-                __('Wordress fields', TTO_I18N) => array(
-                    'wordpress' => __('Categories, menus, pages, posts, posttypes and tags', TTO_I18N)
-                )/*,
-                __('Social Networks fields', TTO_I18N) => array(
-                    'flickr' => __('FlickR', TTO_I18N),
-                    'instagram' => __('Instagram', TTO_I18N),
-                    'twitter' => __('Twitter', TTO_I18N)
-                )*/
-            );
-        }
-        //Return defauls TTO types and only choices
-        else if ('typeschoices' == $return)
-        {
-            $defaults = array(
-                'checkbox', 'radio', 'select', 'multiselect'
-            );
-        }
-        //Return defauls TTO types and only networks
-        else if ('typesnetworks' == $return)
-        {
-            $defaults = array(
-                'flickr', 'instagram', 'twitter'
-            );
-        }
-        //Return defauls TTO types without format
-        else if ('typesraw' == $return)
-        {
-            $defaults = array(
-                'br', 'heading', 'hr', 'list', 'p', 'checkbox',
-                'hidden', 'radio', 'select', 'multiselect',
-                'text', 'textarea', 'background', 'color',
-                'font', 'include', 'rte', 'social', 'upload',
-                'wordpress'/*, 'flickr', 'instagram', 'twitter'*/
-            );
-        }
-        //Return defauls TTO types and only Wordpress
-        else if ('typeswordpress' == $return)
-        {
-            $defaults = array(
-                'categories' => __('Categories', TTO_I18N),
-                'menus' => __('Menus', TTO_I18N),
-                'pages' => __('Pages', TTO_I18N),
-                'posts' => __('Posts', TTO_I18N),
-                'posttypes' => __('Post types', TTO_I18N),
-                'tags' => __('Tags', TTO_I18N)
-            );
-        }
-        //Return defaults field without IDs
-        else if ('withoutids' == $return)
-        {
-            $defaults = array(
-                'br', 'dashboard', 'features', 'flickr', 'include',
-                'instagram', 'heading', 'hr', 'group', 'list', 'p', 'twitter'
-            );
-        }
-
-        //Return the array
-        return $defaults;
-    }
 
     /**
      * Get Tea TO directory.
@@ -2335,6 +1111,28 @@ class Tea_Theme_Options
     protected function setDuration($duration = 86400)
     {
         $this->duration = $duration;
+    }
+
+    /**
+     * Return default values.
+     *
+     * @param string $return Define what to return
+     * @param array $wanted Usefull in social case to return only what the user wants
+     * @return array $defaults All defaults data provided by the Tea TO
+     *
+     * @since Tea Theme Options 1.4.0
+     */
+    protected function getFields()
+    {
+        $defaults = array(
+            'br', 'heading', 'hr', 'list', 'p', 'checkbox',
+            'hidden', 'radio', 'select', 'multiselect',
+            'text', 'textarea', 'background', 'color', 'font',
+            'include', 'rte', 'social', 'upload', 'wordpress'
+        );
+
+        //Return the array
+        return $defaults;
     }
 
     /**
@@ -2528,7 +1326,7 @@ class Tea_Theme_Options
      *
      * @param array $request Contains all data sent in $_REQUEST method
      *
-     * @since Tea Theme Options 1.3.2
+     * @since Tea Theme Options 1.4.0
      */
     protected function updateContents($request)
     {
@@ -2538,428 +1336,79 @@ class Tea_Theme_Options
             return false;
         }
 
-        //Add page
-        if (isset($request['tea_add_page']))
-        {
-            //Check if a title has been defined
-            if (!isset($request['tea_add_page_title']) || empty($request['tea_add_page_title']))
-            {
-                $this->adminmessage = __('Something went wrong in your form: no title is defined. Please, try again by filling properly the form.', TTO_I18N);
-                return false;
-            }
-
-            //Get vars
-            $title = $request['tea_add_page_title'];
-            $slug = '_' . sanitize_title($title);
-            $description = isset($request['tea_add_page_description']) ? $request['tea_add_page_description'] : '';
-            $submit = isset($request['tea_add_page_submit']) ? $request['tea_add_page_submit'] : '1';
-            $submit = '1' == $submit ? true : false;
-
-            //Get all pages
-            $pages = $this->getOption('tea_config_pages', array());
-            $pages = false === $pages || empty($pages) ? array() : $pages;
-
-            //Check if slug is already in
-            if (array_key_exists($slug, $pages))
-            {
-                $this->adminmessage = __('Something went wrong in your form: a page with your title already exists. Please, try another one.', TTO_I18N);
-                return false;
-            }
-
-            $pages[$slug] = array(
-                'title' => $title,
-                'name' => $title,
-                'description' => $description,
-                'submit' => $submit,
-                'slug' => $slug
-            );
-
-            //Insert pages in DB
-            _set_option('tea_config_pages', $pages);
-        }
-        //Add page content
-        else if (isset($request['tea_add_pagecontent']))
-        {
-            //Check if a page has been defined
-            if (!isset($request['tea_page']) || empty($request['tea_page']))
-            {
-                $this->adminmessage = __('Something went wrong in your form: no page is defined. Please, try again by filling properly the form.', TTO_I18N);
-                return false;
-            }
-
-            //Get all pages
-            $pages = $this->getOption('tea_config_pages', array());
-            $pages = false === $pages || empty($pages) ? array() : $pages;
-            $slug = $request['tea_page'];
-
-            //Check if the defined page exists properly
-            if (!array_key_exists($slug, $pages))
-            {
-                $this->adminmessage = __('Something went wrong in your form: the defined page does not exist. Please, try again by using the form properly.', TTO_I18N);
-                return false;
-            }
-
-            //Check if the user want to delete a page
-            if (isset($request['delete_page']))
-            {
-                //Delete slug from pages
-                unset($pages[$slug]);
-
-                //Insert pages in DB
-                _set_option('tea_config_pages', $pages);
-            }
-            //Check if the user want to edit a page
-            else if (isset($request['edit_page']))
-            {
-                //Check if a title has been defined
-                if (!isset($request['tea_edit_page_title']) || empty($request['tea_edit_page_title']))
-                {
-                    $this->adminmessage = __('Something went wrong in your form: no title is defined. Please, try again by filling properly the form.', TTO_I18N);
-                    return false;
-                }
-
-                //Get vars
-                $title = $request['tea_edit_page_title'];
-                $description = isset($request['tea_edit_page_description']) ? $request['tea_edit_page_description'] : '';
-                $submit = isset($request['tea_edit_page_submit']) ? $request['tea_edit_page_submit'] : '1';
-                $submit = '1' == $submit ? true : false;
-
-                //Edit slug from pages
-                $pages[$slug] = array(
-                    'title' => $title,
-                    'name' => $title,
-                    'description' => $description,
-                    'submit' => $submit,
-                    'slug' => $slug
-                );
-
-                //Insert pages in DB
-                _set_option('tea_config_pages', $pages);
-            }
-            //Check if the user want to save a page
-            else if (isset($request['save_page']))
-            {
-                //Get vars
-                $do_not_have_ids = $this->getDefaults('withoutids');
-                $currents = array();
-                $adminmessage = '';
-
-                //Iterate on each content
-                if (isset($request['tea_add_contents']))
-                {
-                    foreach ($request['tea_add_contents'] as $key => $ctn)
-                    {
-                        //Check if our type needs an id
-                        $needid = !in_array($ctn['type'], $do_not_have_ids) ? true : false;
-
-                        //Check if a title has been defined for all fields without IDs
-                        if ($needid && (!isset($ctn['title']) || empty($ctn['title'])))
-                        {
-                            $adminmessage .= '<li>&bull; ' . sprintf(__('No title defined for your <b>%s</b> field.', TTO_I18N), $ctn['type']) . '</li>';
-                            continue;
-                        }
-
-                        //Check if an id is required
-                        if ($needid)
-                        {
-                            //Get the old ID if it was defined
-                            $old_id = isset($pages[$slug]['contents'][$key]['id']) && !empty($pages[$slug]['contents'][$key]['id']) ? $pages[$slug]['contents'][$key]['id'] : '';
-
-                            //Make the new ID
-                            $ctn['id'] = !empty($old_id) ? $old_id : $slug . '_' . sanitize_title($ctn['title']);
-                        }
-
-                        //Add content
-                        $currents[] = $ctn;
-                    }
-                }
-
-                //Check if contents are already defined, so unset it
-                if (isset($pages[$slug]['contents']) && !empty($pages[$slug]['contents']))
-                {
-                    unset($pages[$slug]['contents']);
-                }
-
-                //Assign options to the current page
-                $pages[$slug]['contents'] = $currents;
-
-                //Insert contents in DB
-                _set_option('tea_config_pages', $pages);
-
-                //Check error messages without disturbing actions
-                if (!empty($adminmessage))
-                {
-                    $this->adminmessage = '<p>' . __('Something went wrong in your form:', TTO_I18N) . '</p><ul>' . $adminmessage . '</ul><p>' . __('Please, try again by filling properly the form.', TTO_I18N) . '</p>';
-                    return false;
-                }
-            }
-        }
-        //Add custom post type
-        else if (isset($request['tea_add_cpt']))
-        {
-            //Check if a title has been defined
-            if (!isset($request['tea_add_cpt_title']) || empty($request['tea_add_cpt_title']))
-            {
-                $this->adminmessage = __('Something went wrong in your form: no title is defined. Please, try again by filling properly the form.', TTO_I18N);
-                return false;
-            }
-
-            //Get vars
-            $title = $request['tea_add_cpt_title'];
-            $slug = '_' . sanitize_title($title);
-
-            //Get all pages
-            $cpts = $this->getOption('tea_config_cpts', array());
-            $cpts = false === $cpts || empty($cpts) ? array() : $cpts;
-
-            //Check if slug is already in
-            if (array_key_exists($slug, $cpts))
-            {
-                $this->adminmessage = __('Something went wrong in your form: a custom post type with your title already exists. Please, try another one.', TTO_I18N);
-                return false;
-            }
-
-            $cpts[$slug] = array(
-                'title' => $title,
-                'slug' => $slug
-            );
-
-            //Insert pages in DB
-            _set_option('tea_config_cpts', $cpts);
-        }
-        //Add cutsom post type content
-        else if (isset($request['tea_add_cptcontent']))
-        {
-            //Check if a page has been defined
-            if (!isset($request['tea_cpt']) || empty($request['tea_cpt']))
-            {
-                $this->adminmessage = __('Something went wrong in your form: no custom post type is defined. Please, try again by filling properly the form.', TTO_I18N);
-                return false;
-            }
-
-            //Get all pages
-            $cpts = $this->getOption('tea_config_cpts', array());
-            $cpts = false === $cpts || empty($cpts) ? array() : $cpts;
-            $slug = $request['tea_cpt'];
-
-            //Check if the defined page exists properly
-            if (!array_key_exists($slug, $cpts))
-            {
-                $this->adminmessage = __('Something went wrong in your form: the defined custom post type does not exist. Please, try again by using the form properly.', TTO_I18N);
-                return false;
-            }
-
-            //Check if the user want to delete a custom post type
-            if (isset($request['delete_cpt']))
-            {
-                //Delete slug from cpts
-                unset($cpts[$slug]);
-
-                //Insert pages in DB
-                _set_option('tea_config_cpts', $cpts);
-            }
-            //Check if the user want to save a page
-            else if (isset($request['save_cpt']))
-            {
-                //Get vars
-                $currents = array();
-
-                //Iterate on each content
-                if (isset($request['tea_add_contents']))
-                {
-                    //Check if a title has been defined for all fields without IDs
-                    if (!isset($request['tea_add_contents']['title']) || empty($request['tea_add_contents']['title']))
-                    {
-                        $adminmessage = sprintf(__('Something went wrong in your form: no title defined for your <b>%s</b> Custom post type. Please, try again by filling properly the form.', TTO_I18N), $slug);
-                        return false;
-                    }
-
-                    //Add content
-                    $currents = $request['tea_add_contents'];
-                }
-
-                //Check if contents are already defined, so unset it
-                if (isset($cpts[$slug]) && !empty($cpts[$slug]))
-                {
-                    unset($cpts[$slug]);
-                }
-
-                //Assign options to the current custom post type
-                $cpts[$slug] = $currents;
-                $cpts[$slug]['slug'] = $slug;
-
-                //Insert contents in DB
-                _set_option('tea_config_cpts', $cpts);
-            }
-        }
-    }
-
-    /**
-     * Build data from the asked network.
-     *
-     * @uses date_i18n()
-     * @param array $request Contains all data sent in $_REQUEST method
-     *
-     * @since Tea Theme Options 1.3.2
-     */
-    protected function updateNetworks($request)
-    {
-        //Define date of update
-        $timer = date_i18n(get_option('date_format') . ', ' . get_option('time_format'));
-
-        //Get includes
+        //Defaults variables
+        $page = empty($this->current) ? $this->identifier : $this->current;
         $includes = $this->getIncludes();
 
-        //Check Instagram
-        if ('instagram' == $request['tea_to_network'])
+        //Include class field
+        if (!isset($includes['dashboard']))
         {
-            //Define date of update
-            _set_option('tea_instagram_connection_update', $timer);
+            //Set the include
+            $this->setIncludes('dashboard');
 
-            //Check if Google Font has already been included
-            if (!isset($includes['instagram']))
-            {
-                $this->setIncludes('instagram');
-                include_once $this->getDirectory('normal') . '/includes/instaphp/instaphp.php';
-            }
-
-            //Get token from DB
-            $token = $this->getOption('tea_instagram_access_token', '');
-
-            //Get user info
-            $api = Instaphp\Instaphp::Instance($token);
-            $user_info = $api->Users->Info();
-            $user_recent = $api->Users->Recent('self');
-
-            //Uodate DB with the user info
-            _set_option('tea_instagram_user_info', $user_info->data);
-
-            //Update DB with the user info
-            $recents = array();
-                //Iterate
-            foreach ($user_recent->data as $item)
-            {
-                $recents[] = array(
-                    'link' => $item->link,
-                    'url' => $item->images->thumbnail->url,
-                    'title' => empty($item->caption->text) ? __('Untitled', TTO_I18N) : $item->caption->text,
-                    'width' => $item->images->thumbnail->width,
-                    'height' => $item->images->thumbnail->height,
-                    'likes' => $item->likes->count,
-                    'comments' => $item->comments->count
-                );
-            }
-                //Update
-            _set_option('tea_instagram_user_recent', $recents);
+            //Require file
+            require_once(TTO_PATH . 'classes/fields/dashboard/class-tea-fields-dashboard.php');
         }
-        //Check Flickr
-        else if ('flickr' == $request['tea_to_network'])
-        {
-            //Check if a username is defined
-            if (isset($request['tea_flickr_install']) && (!isset($request['tea_flickr_username']) || empty($request['tea_flickr_username'])))
-            {
-                $this->adminmessage = __('Something went wrong in your parameters definition. You need to specify a username to get connected.', TTO_I18N);
-                return false;
-            }
 
-            //Define date of update
-            _set_option('tea_flickr_connection_update', $timer);
-
-            //Check if Flickr has already been included
-            if (!isset($includes['flickr']))
-            {
-                $this->setIncludes('flickr');
-                include_once $this->getDirectory('normal') . '/includes/phpflickr/phpFlickr.php';
-            }
-
-            //Get Flickr configurations
-            $defaults = $this->getDefaults('flickr');
-
-            //Get Flickr instance with token
-            $api = new phpFlickr($defaults['api_key']);
-
-            //Install a new user
-            if (isset($request['tea_flickr_install']))
-            {
-                //Get Flickr instance with token
-                $user_info = $api->people_findByUsername($request['tea_flickr_username']);
-
-                //Check if the API returns value
-                if (false === $user_info || empty($user_info))
-                {
-                    $this->adminmessage = __('Something went wrong in your parameters definition. The username specified is unknown.', TTO_I18N);
-                    return false;
-                }
-
-                //Update DB with the user info
-                _set_option('tea_flickr_user_info', $user_info);
-            }
-
-            //Get user info
-            $user_info = isset($user_info) ? $user_info : $this->getOption('tea_flickr_user_info', array());
-
-            //Update DB with the user details
-            $user_details = $api->people_getInfo($user_info['id']);
-            _set_option('tea_flickr_user_details', $user_details);
-
-            //Update DB with the user info
-            $user_recent = $api->people_getPublicPhotos($user_info['id'], null, null, 20, 1);
-            $recents = array();
-                //Iterate
-            foreach ($user_recent['photos']['photo'] as $item)
-            {
-                $recents[] = array(
-                    'link' => 'http://www.flickr.com/photos/' . $item['owner'] . '/' . $item['id'],
-                    'url' => $api->buildPhotoURL($item, 'medium_640'),
-                    'url_small' => $api->buildPhotoURL($item, 'square'),
-                    'title' => $item['title']
-                );
-            }
-                //Update
-            _set_option('tea_flickr_user_recent', $recents);
-        }
-        //Check Twitter
-        else if ('twitter' == $request['tea_to_network'])
-        {
-            //Define date of update
-            _set_option('tea_twitter_connection_update', $timer);
-
-            //Check if Twitter has already been included
-            if (!isset($includes['twitter']))
-            {
-                $this->setIncludes('twitter');
-                include_once $this->getDirectory('normal') . '/includes/twitteroauth/twitteroauth.php';
-            }
-
-            //Get Twitter configurations
-            $defaults = $this->getDefaults('twitter');
-
-            //Get token from DB
-            $token = $this->getOption('tea_twitter_access_token', '');
-
-            //Build TwitterOAuth object
-            $api = new TwitterOAuth($defaults['consumer_key'], $defaults['consumer_secret'], $token['oauth_token'], $token['oauth_token_secret']);
-
-            //Get user info
-            $user_info = $api->get('account/verify_credentials');
-            _set_option('tea_twitter_user_info', $user_info);
-
-            //Get recent tweets
-            $user_recent = $api->get('statuses/user_timeline');
-            _set_option('tea_twitter_user_recent', $user_recent);
-        }
+        //Make the magic
+        $field = new Tea_Fields_Dashboard();
+        $field->setCurrentPage($page);
+        $field->actionDashboard($request);
     }
 
     /**
      * Register $_POST and $_FILES into transients.
      *
      * @uses wp_handle_upload()
-     * @param array $post Contains all data in $_POST
+     * @param array $request Contains all data in $_POST
+     *
+     * @since Tea Theme Options 1.4.0
+     */
+    protected function updateNetworks($request)
+    {
+        //Check if we are in admin panel
+        if (!$this->getIsAdmin())
+        {
+            return false;
+        }
+
+        //Check if a network connection is asked
+        if (!isset($request['tea_to_callback']) && !isset($request['tea_to_network']))
+        {
+            $this->adminmessage = __('Something went wrong in your parameters definition. You need to specify a network to make the connection happens.', TTO_I18N);
+            return false;
+        }
+
+        //Defaults variables
+        $page = empty($this->current) ? $this->identifier : $this->current;
+        $includes = $this->getIncludes();
+
+        //Include class field
+        if (!isset($includes['network']))
+        {
+            //Set the include
+            $this->setIncludes('network');
+
+            //Require file
+            require_once(TTO_PATH . 'classes/fields/network/class-tea-fields-network.php');
+        }
+
+        //Make the magic
+        $field = new Tea_Fields_Network();
+        $field->setCurrentPage($page);
+        $field->actionNetwork($request);
+    }
+
+    /**
+     * Register $_POST and $_FILES into transients.
+     *
+     * @uses wp_handle_upload()
+     * @param array $request Contains all data in $_REQUEST
      * @param array $files Contains all data in $_FILES
      *
-     * @since Tea Theme Options 1.3.0
+     * @since Tea Theme Options 1.4.0
      */
-    protected function updateOptions($post, $files)
+    protected function updateOptions($request, $files)
     {
         //Check if we are in admin panel
         if (!$this->getIsAdmin())
@@ -2968,7 +1417,7 @@ class Tea_Theme_Options
         }
 
         //Set all options in transient
-        foreach ($post as $k => $v)
+        foreach ($request as $k => $v)
         {
             //Don't register this default value
             if ('tea_to_settings' == $k || 'submit' == $k)
@@ -2977,7 +1426,7 @@ class Tea_Theme_Options
             }
 
             //Special usecase: checkboxes. When it's not checked, no data is sent through the $_POST array
-            $p = false !== strpos($k, '__checkbox') ? $post : array();
+            $p = false !== strpos($k, '__checkbox') ? $request : array();
 
             //Register option and transient
             $this->setOption($k, $v, $p);
