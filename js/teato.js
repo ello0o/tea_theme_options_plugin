@@ -42,13 +42,10 @@
             //Wordpress version < 3.5
             if (!_wpcolor) {
                 //Use functions plugin
-                $self.miniColors({
-                    readonly: true,
-                    change: function (hex,rgb){
-                        $self.val('' + hex);
-                        $self.css('color', hex);
-                    }
-                });
+                var _id = $self.attr('id');
+                $farb = $(document.createElement('div')).attr('id', _id + '_farb');
+                $farb.insertAfter($self);
+                $farb.farbtastic('#' + _id);
             }
             //Wordpress version >= 3.5
             else {

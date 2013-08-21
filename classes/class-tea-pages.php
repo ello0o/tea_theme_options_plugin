@@ -4,7 +4,7 @@
  * 
  * @package TakeaTea
  * @subpackage Tea Pages
- * @since Tea Theme Options 1.4.2
+ * @since Tea Theme Options 1.4.3
  *
  */
 
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
  *
  * To get its own Pages
  *
- * @since Tea Theme Options 1.4.2
+ * @since Tea Theme Options 1.4.3
  *
  */
 class Tea_Pages
@@ -179,7 +179,7 @@ class Tea_Pages
      * @uses wp_enqueue_media()
      * @uses wp_enqueue_script()
      *
-     * @since Tea Theme Options 1.4.2
+     * @since Tea Theme Options 1.4.3
      */
     public function __assetScripts()
     {
@@ -196,14 +196,15 @@ class Tea_Pages
         if (function_exists('wp_enqueue_media'))
         {
             wp_enqueue_media();
+            wp_enqueue_script('wp-color-picker');
+            wp_enqueue_script('accordion');
         }
         else
         {
             wp_enqueue_script('media-upload');
+            wp_enqueue_script('farbtastic');
         }
 
-        wp_enqueue_script('wp-color-picker');
-        wp_enqueue_script('accordion');
         wp_enqueue_script('tea-modal', $directory . '/js/teamodal.js', array('jquery'));
         wp_enqueue_script('tea-to', $directory . '/js/teato.js', array('jquery', 'tea-modal'));
     }
@@ -213,7 +214,7 @@ class Tea_Pages
      *
      * @uses wp_enqueue_style()
      *
-     * @since Tea Theme Options 1.4.2
+     * @since Tea Theme Options 1.4.3
      */
     public function __assetStyles()
     {
@@ -228,6 +229,7 @@ class Tea_Pages
 
         //Enqueue usefull styles
         wp_enqueue_style('media-views');
+        wp_enqueue_style('farbtastic');
         wp_enqueue_style('wp-color-picker');
         wp_enqueue_style('tea-to', $directory . '/css/teato.css');
     }
