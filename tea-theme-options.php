@@ -110,7 +110,7 @@ class Tea_Theme_Options
 
             //Registration hooks
             register_activation_hook(__FILE__, array(&$this, '__adminInstall'));
-            register_uninstall_hook(__FILE__, array(&$this, '__adminUninstall'));
+            register_uninstall_hook(__FILE__, '__adminUninstall');
 
             //Page component
             require_once(TTO_PATH . 'classes/class-tea-pages.php');
@@ -161,7 +161,7 @@ class Tea_Theme_Options
      *
      * @uses wp_enqueue_script()
      *
-     * @since Tea Theme Options 1.4.0
+     * @since Tea Theme Options 1.4.3
      */
     public function __adminUninstall()
     {
@@ -172,26 +172,26 @@ class Tea_Theme_Options
         }
 
         //Delete configs
-        _del_option('tea_config_pages');
-        _del_option('tea_config_cpts');
+        delete_option('tea_config_pages');
+        delete_option('tea_config_cpts');
 
         //Delete FlickR
-        _del_option('tea_flickr_user_info');
-        _del_option('tea_flickr_user_details');
-        _del_option('tea_flickr_user_recent');
-        _del_option('tea_flickr_connection_update');
+        delete_option('tea_flickr_user_info');
+        delete_option('tea_flickr_user_details');
+        delete_option('tea_flickr_user_recent');
+        delete_option('tea_flickr_connection_update');
 
         //Delete Instagram
-        _del_option('tea_instagram_access_token');
-        _del_option('tea_instagram_user_info');
-        _del_option('tea_instagram_user_recent');
-        _del_option('tea_instagram_connection_update');
+        delete_option('tea_instagram_access_token');
+        delete_option('tea_instagram_user_info');
+        delete_option('tea_instagram_user_recent');
+        delete_option('tea_instagram_connection_update');
 
         //Delete Twitter
-        _del_option('tea_twitter_access_token');
-        _del_option('tea_twitter_user_info');
-        _del_option('tea_twitter_user_recent');
-        _del_option('tea_twitter_connection_update');
+        delete_option('tea_twitter_access_token');
+        delete_option('tea_twitter_user_info');
+        delete_option('tea_twitter_user_recent');
+        delete_option('tea_twitter_connection_update');
     }
 
     /**
