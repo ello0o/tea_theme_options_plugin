@@ -110,7 +110,7 @@ class Tea_Theme_Options
 
             //Registration hooks
             register_activation_hook(__FILE__, array(&$this, '__adminInstall'));
-            register_uninstall_hook(__FILE__, array(&$this, '__adminUninstall'));
+            register_uninstall_hook(__FILE__, array('Tea_Theme_Options', '__adminUninstall'));
 
             //Page component
             require_once(TTO_PATH . 'classes/class-tea-pages.php');
