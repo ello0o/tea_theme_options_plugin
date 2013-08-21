@@ -17,6 +17,8 @@ if (!defined('ABSPATH')) {
 
 //Require master Class
 require_once(TTO_PATH . 'classes/class-tea-networks.php');
+//Define statics
+defined('TTO_INSTAGRAM') or define('TTO_INSTAGRAM', 'http://takeatea.com/instagram.php');
 
 //---------------------------------------------------------------------------------------------------------//
 

@@ -100,19 +100,19 @@ All available types are:
 ### 5) Previews
 
 Dashboard  
-![Main dashboard](http://plugins.svn.wordpress.org/tea-theme-options/assets/screenshot-1.jpg)  
-![Main empty dashboard](http://plugins.svn.wordpress.org/tea-theme-options/assets/screenshot-2.jpg)  
+![Main dashboard](http://s-plugins.wordpress.org/tea-theme-options/assets/screenshot-1.jpg)  
+![Main empty dashboard](http://s-plugins.wordpress.org/tea-theme-options/assets/screenshot-2.jpg)  
 
 Page  
-![Add a page](http://plugins.svn.wordpress.org/tea-theme-options/assets/screenshot-3.jpg)
-![Edit a page](http://plugins.svn.wordpress.org/tea-theme-options/assets/screenshot-4.jpg)  
+![Add a page](http://s-plugins.wordpress.org/tea-theme-options/assets/screenshot-3.jpg)
+![Edit a page](http://s-plugins.wordpress.org/tea-theme-options/assets/screenshot-4.jpg)  
 
 All fields  
-![All fields listed](http://plugins.svn.wordpress.org/tea-theme-options/assets/screenshot-5.jpg)  
+![All fields listed](http://s-plugins.wordpress.org/tea-theme-options/assets/screenshot-5.jpg)  
 
 Specials  
-![A connection block](http://plugins.svn.wordpress.org/tea-theme-options/assets/screenshot-6.jpg)  
-![An example page](http://plugins.svn.wordpress.org/tea-theme-options/assets/screenshot-7.jpg)  
+![A connection block](http://s-plugins.wordpress.org/tea-theme-options/assets/screenshot-6.jpg)  
+![An example page](http://s-plugins.wordpress.org/tea-theme-options/assets/screenshot-7.jpg)  
 
 
 ### 6) That's all folkes!
