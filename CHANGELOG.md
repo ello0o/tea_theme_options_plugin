@@ -1,3 +1,8 @@
+## 1.4.4 (August 22, 2013)
+
+Fix uninstall bug
+
+
 ## 1.4.3 (August 21, 2013)
 
 Better compatibility with Wordpress 3.4.2 and uses of register_uninstall_hook instead of register_desactivation_hook

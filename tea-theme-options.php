@@ -4,10 +4,10 @@
  * 
  * @package TakeaTea
  * @subpackage Tea Theme Options
- * @since Tea Theme Options 1.4.3
+ * @since Tea Theme Options 1.4.4
  *
  * Plugin Name: Tea Theme Options
- * Version: 1.4.3
+ * Version: 1.4.4
  * Plugin URI: https://github.com/Takeatea/tea_to_wp
  * Description: The Tea Theme Options (or "Tea TO") allows you to easily add professional looking theme options panels to your WordPress theme.
  * Author: Achraf Chouk
@@ -40,7 +40,7 @@ if (!defined('ABSPATH')) {
 //---------------------------------------------------------------------------------------------------------//
 
 //Usefull definitions for the Tea Theme Options
-defined('TTO_VERSION')      or define('TTO_VERSION', '1.4.3');
+defined('TTO_VERSION')      or define('TTO_VERSION', '1.4.4');
 defined('TTO_I18N')         or define('TTO_I18N', 'teathemeoptions');
 defined('TTO_DURATION')     or define('TTO_DURATION', 86400);
 defined('TTO_URI')          or define('TTO_URI', plugins_url().'/'.basename(dirname(__FILE__)).'/');
@@ -57,7 +57,7 @@ defined('TTO_NONCE')        or define('TTO_NONCE', 'tea-ajax-nonce');
  *
  * To get its own settings
  *
- * @since Tea Theme Options 1.4.3
+ * @since Tea Theme Options 1.4.4
  * @todo Special field:     Typeahead, Date, Geolocalisation
  * @todo Shortcodes panel:  Youtube, Vimeo, Dailymotion, Google Maps, Google Adsense,
  *                          Related posts, Private content, RSS Feed, Embed PDF,
@@ -66,22 +66,7 @@ defined('TTO_NONCE')        or define('TTO_NONCE', 'tea-ajax-nonce');
 class Tea_Theme_Options
 {
     //Define protected vars
-    protected $adminmessage;
-    protected $breadcrumb = array();
-    protected $capability = 'edit_pages';
-    protected $categories = array();
-    protected $can_upload = false;
-    protected $current = '';
-    protected $directory = array();
-    protected $duration = 86400;
-    protected $icon_small = '/img/teato/icn-small.png';
-    protected $icon_big = '/img/teato/icn-big.png';
-    protected $identifier;
-    protected $includes = array();
-    protected $index = null;
     protected $is_admin;
-    protected $pages = array();
-    protected $wp_contents = array();
 
     /**
      * Constructor.
@@ -94,7 +79,7 @@ class Tea_Theme_Options
      * @uses wp_schedule_event()
      * @param string $identifier Define the plugin main slug
      *
-     * @since Tea Theme Options 1.4.3
+     * @since Tea Theme Options 1.4.4
      */
     public function __construct($identifier = 'tea_theme_options')
     {
@@ -110,7 +95,7 @@ class Tea_Theme_Options
 
             //Registration hooks
             register_activation_hook(__FILE__, array(&$this, '__adminInstall'));
-            register_uninstall_hook(__FILE__, '__adminUninstall');
+            register_uninstall_hook(__FILE__, array('Tea_Theme_Options', '__adminUninstall'));
 
             //Page component
             require_once(TTO_PATH . 'classes/class-tea-pages.php');
@@ -159,16 +144,27 @@ class Tea_Theme_Options
     /**
      * Hook uninstall plugin.
      *
-     * @uses wp_enqueue_script()
+     * @uses check_admin_referer()
+     * @uses current_user_can()
+     * @uses delete_option()
      *
-     * @since Tea Theme Options 1.4.3
+     * @since Tea Theme Options 1.4.4
      */
-    public function __adminUninstall()
+    static function __adminUninstall()
     {
-        //Check if we are in admin panel
-        if (!$this->getIsAdmin())
+        if (!current_user_can('activate_plugins'))
         {
-            return false;
+            return;
+        }
+
+        //Check the Wordpress admin referrer and the nounce value
+        check_admin_referer('bulk-plugins');
+
+        //Important: Check if the file is the one
+        //that was registered during the uninstall hook.
+        if (!defined(WP_UNINSTALL_PLUGIN) || __FILE__ != WP_UNINSTALL_PLUGIN)
+        {
+            return;
         }
 
         //Delete configs
