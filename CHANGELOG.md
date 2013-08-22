@@ -1,5 +1,6 @@
 ## 1.4.4 (August 22, 2013)
 
+Add new uninstall.php to make uninstall works
 Fix uninstall bug
 
 

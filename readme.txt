@@ -140,6 +140,7 @@ That's all to begin working with **Tea TO**
 == Changelog ==
 
 = 1.4.4 (August 22, 2013) =
+Add new uninstall.php to make uninstall works
 Fix uninstall bug
 
 = 1.4.3 (August 21, 2013) =
