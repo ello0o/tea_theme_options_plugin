@@ -6,6 +6,14 @@
 </label>
 
 <div class="label-edit-options" style="display:block;">
+    <div class="label-model">
+        <label class="label-option"></label>
+        <label class="label-edit-content">
+            <input type="text" name="tea_add_contents[<?php echo $number ?>][contents][__OPTNUM__]" value="" class="code" placeholder="<?php _e('Your text', TTO_I18N) ?>" />
+        </label>
+        <div class="clearfix"></div>
+    </div>
+
     <?php
         $optnum = 0;
 
@@ -18,14 +26,14 @@
                     continue;
                 }
         ?>
+            <label class="label-option"></label>
             <label class="label-edit-content">
                 <input type="text" name="tea_add_contents[<?php echo $number ?>][contents][<?php echo $k ?>]" value="<?php echo $opts ?>" class="code" placeholder="<?php _e('Your text', TTO_I18N) ?>" />
             </label>
+            <div class="clearfix"></div>
             <?php $optnum++; ?>
         <?php endforeach ?>
     <?php endif ?>
-    <label class="label-edit-content">
-        <input type="text" name="tea_add_contents[<?php echo $number ?>][contents][<?php echo $optnum ?>]" value="" class="code" placeholder="<?php _e('Your text', TTO_I18N) ?>" />
-    </label>
-    <div class="clearfix"></div>
+
+    <input type="submit" name="add_option" class="button-secondary label-button" value="<?php _e('Add a new item', TTO_I18N) ?>" />
 </div>

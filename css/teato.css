@@ -1,5 +1,5 @@
 /*
- * Tea Theme Options v1.4.1 - "BAAAAAAAKA - One Piece (Choper)"
+ * Tea Theme Options v1.4.5 - "Tu ne le sais pas mais tu es déjà mort ! - Ken le survivant"
  * Copyright 2013 Take a Tea
  * By Take a Tea <takeatea.com> :)
  */
@@ -229,16 +229,29 @@
     display:block;
     margin-bottom:10px;
 }
+.tea_to.wrap .dashboard-content .label-edit-options .label-model,
 .tea_to.wrap .dashboard-content .label-edit-options {
     display:none;
 }
-.tea_to.wrap .dashboard-content .label-second {
-    float:left;
-    width:50%;
-}
+.tea_to.wrap .dashboard-content .label-option,
+.tea_to.wrap .dashboard-content .label-first,
+.tea_to.wrap .dashboard-content .label-second,
 .tea_to.wrap .dashboard-content .label-third {
     float:left;
-    width:33%;
+    line-height:24px;
+    margin-bottom:5px;
+}
+.tea_to.wrap .dashboard-content .label-option {
+    width:10%;
+}
+.tea_to.wrap .dashboard-content .label-first {
+    width:90%;
+}
+.tea_to.wrap .dashboard-content .label-second {
+    width:45%;
+}
+.tea_to.wrap .dashboard-content .label-third {
+    width:30%;
 }
 .tea_to.wrap .tea-menu-edit .label-edit-image label {
     display:block;
@@ -276,6 +289,9 @@
 .tea_to.wrap .tea-menu-edit .label-edit-options input,
 .tea_to.wrap .tea-menu-edit .label-edit-options input[type="text"] {
     width:98%;
+}
+.tea_to.wrap .tea-menu-edit .label-edit-options input.label-button {
+    width:100%;
 }
 
 

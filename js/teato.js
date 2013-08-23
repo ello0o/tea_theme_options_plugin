@@ -35,6 +35,23 @@
             });
         });
 
+        //Checkbox add labels
+        $('.label-edit-options .label-button').live('click', function (e){
+            e.preventDefault();
+
+            //Get infos
+            var $self = $(this);
+            var $parent = $self.closest('.label-edit-options');
+
+            //Transform content
+            var _count = $parent.find('> .label-option').length;
+            var _model = $parent.find('> .label-model').html();
+            _model = _model.replace(/__OPTNUM__/g, _count);
+
+            //Repeat sequence
+            $self.before(_model);
+        });
+
         //Color input
         $.each($('.inside .color-picker'), function (){
             var $self = $(this);

@@ -4,7 +4,7 @@
  * 
  * @package TakeaTea
  * @subpackage Tea Fields Dashboard
- * @since Tea Theme Options 1.4.0
+ * @since Tea Theme Options 1.4.5
  *
  */
 
@@ -25,7 +25,7 @@ require_once(TTO_PATH . 'classes/class-tea-fields.php');
  *
  * To get its own Fields
  *
- * @since Tea Theme Options 1.4.0
+ * @since Tea Theme Options 1.4.5
  *
  */
 class Tea_Fields_Dashboard extends Tea_Fields
@@ -168,14 +168,14 @@ class Tea_Fields_Dashboard extends Tea_Fields
      *
      * @param array $request Contains all data sent in $_REQUEST method
      *
-     * @since Tea Theme Options 1.4.0
+     * @since Tea Theme Options 1.4.5
      */
     protected function addPage($request)
     {
         //Check if a title has been defined
         if (!isset($request['tea_add_page_title']) || empty($request['tea_add_page_title']))
         {
-            echo __('Something went wrong in your form: no title is defined. Please, try again by filling properly the form.', TTO_I18N);
+            $this->setAdminMessage(__('Something went wrong in your form: no title is defined. Please, try again by filling properly the form.', TTO_I18N));
             return false;
         }
 
@@ -193,7 +193,7 @@ class Tea_Fields_Dashboard extends Tea_Fields
         //Check if slug is already in
         if (array_key_exists($slug, $pages))
         {
-            echo __('Something went wrong in your form: a page with your title already exists. Please, try another one.', TTO_I18N);
+            $this->setAdminMessage(__('Something went wrong in your form: a page with your title already exists. Please, try another one.', TTO_I18N));
             return false;
         }
 
@@ -214,14 +214,14 @@ class Tea_Fields_Dashboard extends Tea_Fields
      *
      * @param array $request Contains all data sent in $_REQUEST method
      *
-     * @since Tea Theme Options 1.4.0
+     * @since Tea Theme Options 1.4.5
      */
     protected function addPageContent($request)
     {
         //Check if a page has been defined
         if (!isset($request['tea_page']) || empty($request['tea_page']))
         {
-            echo __('Something went wrong in your form: no page is defined. Please, try again by filling properly the form.', TTO_I18N);
+            $this->setAdminMessage(__('Something went wrong in your form: no page is defined. Please, try again by filling properly the form.', TTO_I18N));
             return false;
         }
 
@@ -233,7 +233,7 @@ class Tea_Fields_Dashboard extends Tea_Fields
         //Check if the defined page exists properly
         if (!array_key_exists($slug, $pages))
         {
-            echo __('Something went wrong in your form: the defined page does not exist. Please, try again by using the form properly.', TTO_I18N);
+            $this->setAdminMessage(__('Something went wrong in your form: the defined page does not exist. Please, try again by using the form properly.', TTO_I18N));
             return false;
         }
 
@@ -252,7 +252,7 @@ class Tea_Fields_Dashboard extends Tea_Fields
             //Check if a title has been defined
             if (!isset($request['tea_edit_page_title']) || empty($request['tea_edit_page_title']))
             {
-                echo __('Something went wrong in your form: no title is defined. Please, try again by filling properly the form.', TTO_I18N);
+                $this->setAdminMessage(__('Something went wrong in your form: no title is defined. Please, try again by filling properly the form.', TTO_I18N));
                 return false;
             }
 
@@ -279,6 +279,7 @@ class Tea_Fields_Dashboard extends Tea_Fields
         {
             //Get vars
             $do_not_have_ids = $this->getDefaults('withoutids');
+            $includes = $this->getIncludes();
             $currents = array();
             $adminmessage = '';
 
@@ -307,8 +308,20 @@ class Tea_Fields_Dashboard extends Tea_Fields
                         $ctn['id'] = !empty($old_id) ? $old_id : $slug . '_' . sanitize_title($ctn['title']);
                     }
 
-                    //Add content
-                    $currents[] = $ctn;
+                    //Include class field
+                    if (!isset($includes[$ctn['type']]))
+                    {
+                        //Set the include
+                        $this->setIncludes($ctn['type']);
+
+                        //Require file
+                        require_once(TTO_PATH . 'classes/fields/' . $ctn['type'] . '/class-tea-fields-' . $ctn['type'] . '.php');
+                    }
+
+                    //Make the magic and add content
+                    $class = 'Tea_Fields_' . ucfirst($ctn['type']);
+                    $treated_content = $class::saveContent($ctn);
+                    $currents[] = !empty($treated_content) ? $treated_content : $ctn;
                 }
             }
 
@@ -327,7 +340,7 @@ class Tea_Fields_Dashboard extends Tea_Fields
             //Check error messages without disturbing actions
             if (!empty($adminmessage))
             {
-                echo '<p>' . __('Something went wrong in your form:', TTO_I18N) . '</p><ul>' . $adminmessage . '</ul><p>' . __('Please, try again by filling properly the form.', TTO_I18N) . '</p>';
+                $this->setAdminMessage('<p>' . __('Something went wrong in your form:', TTO_I18N) . '</p><ul>' . $adminmessage . '</ul><p>' . __('Please, try again by filling properly the form.', TTO_I18N) . '</p>');
                 return false;
             }
         }
@@ -338,14 +351,14 @@ class Tea_Fields_Dashboard extends Tea_Fields
      *
      * @param array $request Contains all data sent in $_REQUEST method
      *
-     * @since Tea Theme Options 1.4.0
+     * @since Tea Theme Options 1.4.5
      */
     protected function addCustomPostType($request)
     {
         //Check if a title has been defined
         if (!isset($request['tea_add_cpt_title']) || empty($request['tea_add_cpt_title']))
         {
-            echo __('Something went wrong in your form: no title is defined. Please, try again by filling properly the form.', TTO_I18N);
+            $this->setAdminMessage(__('Something went wrong in your form: no title is defined. Please, try again by filling properly the form.', TTO_I18N));
             return false;
         }
 
@@ -360,7 +373,7 @@ class Tea_Fields_Dashboard extends Tea_Fields
         //Check if slug is already in
         if (array_key_exists($slug, $cpts))
         {
-            echo __('Something went wrong in your form: a custom post type with your title already exists. Please, try another one.', TTO_I18N);
+            $this->setAdminMessage(__('Something went wrong in your form: a custom post type with your title already exists. Please, try another one.', TTO_I18N));
             return false;
         }
 
@@ -378,14 +391,14 @@ class Tea_Fields_Dashboard extends Tea_Fields
      *
      * @param array $request Contains all data sent in $_REQUEST method
      *
-     * @since Tea Theme Options 1.4.0
+     * @since Tea Theme Options 1.4.5
      */
     protected function addCustomPostTypeContent($request)
     {
         //Check if a page has been defined
         if (!isset($request['tea_cpt']) || empty($request['tea_cpt']))
         {
-            echo __('Something went wrong in your form: no custom post type is defined. Please, try again by filling properly the form.', TTO_I18N);
+            $this->setAdminMessage(__('Something went wrong in your form: no custom post type is defined. Please, try again by filling properly the form.', TTO_I18N));
             return false;
         }
 
@@ -397,7 +410,7 @@ class Tea_Fields_Dashboard extends Tea_Fields
         //Check if the defined page exists properly
         if (!array_key_exists($slug, $cpts))
         {
-            echo __('Something went wrong in your form: the defined custom post type does not exist. Please, try again by using the form properly.', TTO_I18N);
+            $this->setAdminMessage(__('Something went wrong in your form: the defined custom post type does not exist. Please, try again by using the form properly.', TTO_I18N));
             return false;
         }
 

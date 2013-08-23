@@ -4,7 +4,7 @@
  * 
  * @package TakeaTea
  * @subpackage Tea Fields Checkbox
- * @since Tea Theme Options 1.4.0
+ * @since Tea Theme Options 1.4.5
  *
  */
 
@@ -25,7 +25,7 @@ require_once(TTO_PATH . 'classes/class-tea-fields.php');
  *
  * To get its own Fields
  *
- * @since Tea Theme Options 1.4.0
+ * @since Tea Theme Options 1.4.5
  *
  */
 class Tea_Fields_Checkbox extends Tea_Fields
@@ -92,5 +92,69 @@ class Tea_Fields_Checkbox extends Tea_Fields
 
         //Get template
         include('in_pages.tpl.php');
+    }
+
+
+    //--------------------------------------------------------------------------//
+
+    /**
+     * PRE SAVE METHOD
+     **/
+
+    /**
+     * Edit contents before saving.
+     *
+     * @param array $content Content sent throught Dahsboard forms.
+     * @return array $content Content modified.
+     *
+     * @since Tea Theme Options 1.4.5
+     */
+    static function saveContent($content)
+    {
+        //Treat all defaults value
+        $default = array();
+
+        //Check for options
+        if (!isset($content['options']))
+        {
+            return $content;
+        }
+
+        //Check defaults
+        if (isset($content['default']))
+        {
+            $default = $content['default'];
+            unset($content['default']);
+        }
+
+        //Check for __OPTNUM__
+        if (isset($content['options']['__OPTNUM__']))
+        {
+            unset($content['options']['__OPTNUM__']);
+        }
+
+        //Iterate on each options
+        foreach ($content['options'] as $k => $ctn)
+        {
+            //Check label
+            if (empty($ctn[1]))
+            {
+                unset($content['options'][$k]);
+                continue;
+            }
+
+            //Create value from label
+            $value_sanitized = sanitize_title($ctn[1]);
+            $content['options'][$k][0] = $value_sanitized;
+
+            //Check if we want it as default
+            if (isset($default[$k]) && !array_key_exists($value_sanitized, $content['std']))
+            {
+                $content['std'][$value_sanitized] = 1;
+            }
+        }
+
+        //Return modified contents
+        return $content;
     }
 }

@@ -4,10 +4,10 @@
  * 
  * @package TakeaTea
  * @subpackage Tea Theme Options
- * @since Tea Theme Options 1.4.4
+ * @since Tea Theme Options 1.4.5
  *
  * Plugin Name: Tea Theme Options
- * Version: 1.4.4
+ * Version: 1.4.5
  * Plugin URI: https://github.com/Takeatea/tea_theme_options
  * Description: The Tea Theme Options (or "Tea TO") allows you to easily add professional looking theme options panels to your WordPress theme.
  * Author: Achraf Chouk
@@ -40,7 +40,7 @@ if (!defined('ABSPATH')) {
 //---------------------------------------------------------------------------------------------------------//
 
 //Usefull definitions for the Tea Theme Options
-defined('TTO_VERSION')      or define('TTO_VERSION', '1.4.4');
+defined('TTO_VERSION')      or define('TTO_VERSION', '1.4.5');
 defined('TTO_I18N')         or define('TTO_I18N', 'teathemeoptions');
 defined('TTO_DURATION')     or define('TTO_DURATION', 86400);
 defined('TTO_URI')          or define('TTO_URI', plugins_url().'/'.basename(dirname(__FILE__)).'/');

@@ -4,7 +4,7 @@
  * 
  * @package TakeaTea
  * @subpackage Tea Fields List
- * @since Tea Theme Options 1.4.0
+ * @since Tea Theme Options 1.4.5
  *
  */
 
@@ -25,7 +25,7 @@ require_once(TTO_PATH . 'classes/class-tea-fields.php');
  *
  * To get its own Fields
  *
- * @since Tea Theme Options 1.4.0
+ * @since Tea Theme Options 1.4.5
  *
  */
 class Tea_Fields_List extends Tea_Fields
@@ -77,5 +77,50 @@ class Tea_Fields_List extends Tea_Fields
 
         //Get template
         include('in_pages.tpl.php');
+    }
+
+
+    //--------------------------------------------------------------------------//
+
+    /**
+     * PRE SAVE METHOD
+     **/
+
+    /**
+     * Edit contents before saving.
+     *
+     * @param array $content Content sent throught Dahsboard forms.
+     * @return array $content Content modified.
+     *
+     * @since Tea Theme Options 1.4.5
+     */
+    static function saveContent($content)
+    {
+        //Check for options
+        if (!isset($content['contents']))
+        {
+            return $content;
+        }
+
+        //Check for __OPTNUM__
+        if (isset($content['contents']['__OPTNUM__']))
+        {
+            unset($content['contents']['__OPTNUM__']);
+        }
+
+
+        //Iterate on each contents
+        foreach ($content['contents'] as $k => $ctn)
+        {
+            //Check label
+            if (empty($ctn[1]))
+            {
+                unset($content['contents'][$k]);
+                continue;
+            }
+        }
+
+        //Return modified contents
+        return $content;
     }
 }

@@ -4,7 +4,7 @@
  * 
  * @package TakeaTea
  * @subpackage Tea Fields
- * @since Tea Theme Options 1.4.0
+ * @since Tea Theme Options 1.4.5
  *
  */
 
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
  *
  * To get its own Fields
  *
- * @since Tea Theme Options 1.4.0
+ * @since Tea Theme Options 1.4.5
  *
  */
 abstract class Tea_Fields
@@ -36,6 +36,16 @@ abstract class Tea_Fields
      * @since Tea Theme Options 1.4.0
      */
     public function __construct(){}
+
+
+    //--------------------------------------------------------------------------//
+
+    /**
+     * ABSTRACT FUNCTIONS
+     **/
+
+    abstract protected function templateDashboard($number = '__NUM__', $content = array());
+    abstract protected function templatePages($content);
 
 
     //--------------------------------------------------------------------------//
@@ -345,7 +355,7 @@ abstract class Tea_Fields
     {
         if (!empty($content))
         {
-            include_once(TTO_PATH . 'tpl/layouts/__layout_admin_message.tpl.php');
+            include_once(TTO_PATH . 'classes/tpl/layouts/__layout_admin_message.tpl.php');
         }
     }
 
@@ -532,9 +542,20 @@ abstract class Tea_Fields
     //--------------------------------------------------------------------------//
 
     /**
-     * MAIN FUNCTIONS
+     * PRE SAVE METHOD
      **/
 
-    abstract protected function templateDashboard($number = '__NUM__', $content = array());
-    abstract protected function templatePages($content);
+    /**
+     * Edit contents before saving.
+     *
+     * @param array $content Content sent throught Dahsboard forms.
+     * @return array $content Content modified.
+     *
+     * @since Tea Theme Options 1.4.5
+     */
+    static function saveContent($content)
+    {
+        //Do nothing in all cases
+        return $content;
+    }
 }

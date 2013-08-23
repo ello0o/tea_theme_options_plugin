@@ -4,7 +4,7 @@
  * 
  * @package TakeaTea
  * @subpackage Tea Fields Font
- * @since Tea Theme Options 1.4.0
+ * @since Tea Theme Options 1.4.5
  *
  */
 
@@ -25,7 +25,7 @@ require_once(TTO_PATH . 'classes/class-tea-fields.php');
  *
  * To get its own Fields
  *
- * @since Tea Theme Options 1.4.0
+ * @since Tea Theme Options 1.4.5
  *
  */
 class Tea_Fields_Font extends Tea_Fields
@@ -127,5 +127,90 @@ class Tea_Fields_Font extends Tea_Fields
 
         //Get template
         include('in_pages.tpl.php');
+    }
+
+
+    //--------------------------------------------------------------------------//
+
+    /**
+     * PRE SAVE METHOD
+     **/
+
+    /**
+     * Edit contents before saving.
+     *
+     * @param array $content Content sent throught Dahsboard forms.
+     * @return array $content Content modified.
+     *
+     * @since Tea Theme Options 1.4.5
+     */
+    static function saveContent($content)
+    {
+        //Treat all defaults value
+        $stands = '';
+
+        //Check for options
+        if (!isset($content['options']))
+        {
+            return $content;
+        }
+
+        //Check defaults
+        if (isset($content['stands']))
+        {
+            $stands = $content['stands'];
+            unset($content['stands']);
+        }
+
+        //Check for __OPTNUM__
+        if (isset($content['options']['__OPTNUM__']))
+        {
+            unset($content['options']['__OPTNUM__']);
+        }
+
+        //Iterate on each options
+        foreach ($content['options'] as $k => $ctn)
+        {
+            //Check label
+            if (empty($ctn[1]))
+            {
+                unset($content['options'][$k]);
+                continue;
+            }
+
+            //Create value from label
+            $value_sanitized = sanitize_title($ctn[1]);
+            $content['options'][$k][0] = $value_sanitized;
+        }
+
+        //Get default
+        if (isset($content['options'][$stands]))
+        {
+            $content['std'] = $content['options'][$stands][0];
+        }
+        else
+        {
+            //Require master Class
+            require_once(TTO_PATH . 'classes/class-tea-fields.php');
+
+            //Get fonts
+            $fonts = Tea_Fields::getDefaults('fonts');
+
+            //Iterate on each font
+            foreach ($fonts as $ft)
+            {
+                //Check 1st item
+                if ($stands != $ft[0])
+                {
+                    continue;
+                }
+
+                //We found our default item
+                $content['std'] = $ft[0];
+            }
+        }
+
+        //Return modified contents
+        return $content;
     }
 }
