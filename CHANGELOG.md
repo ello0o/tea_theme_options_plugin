@@ -1,3 +1,9 @@
+## 1.4.6 (August 25, 2013)
+
+Fix lots of bugs on network field.
+Add new French package.
+
+
 ## 1.4.5 (August 23, 2013)
 
 Better integration in fields

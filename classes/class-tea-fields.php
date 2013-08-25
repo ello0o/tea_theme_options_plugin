@@ -165,7 +165,7 @@ abstract class Tea_Fields
                 'honeycomb.png'      => __('Honeycomb', TTO_I18N),
                 'linen.png'          => __('Linen', TTO_I18N),
                 'project_paper.png'  => __('Project paper', TTO_I18N),
-                'texture.png'        => __('Tetxure', TTO_I18N),
+                'texture.png'        => __('Texture', TTO_I18N),
                 'vertical_lines.png' => __('Vertical lines', TTO_I18N),
                 'vichy.png'          => __('Vichy', TTO_I18N),
                 'wavecut.png'        => __('Wavecut', TTO_I18N),

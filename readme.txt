@@ -4,7 +4,7 @@ Donate link: https://github.com/Takeatea/tea_theme_options
 Tags: theme, options, pages, custom post types
 Requires at least: 3.4.2
 Tested up to: 3.6
-Stable tag: 1.4.5
+Stable tag: 1.4.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -138,6 +138,10 @@ That's all to begin working with **Tea TO**
 
 
 == Changelog ==
+
+= 1.4.6 (August 25, 2013) =
+Fix lots of bugs on network field.
+Add new French package.
 
 = 1.4.5 (August 23, 2013) =
 Better integration in fields

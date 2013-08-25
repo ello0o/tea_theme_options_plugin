@@ -4,10 +4,10 @@
  * 
  * @package TakeaTea
  * @subpackage Tea Theme Options
- * @since Tea Theme Options 1.4.5
+ * @since Tea Theme Options 1.4.6
  *
  * Plugin Name: Tea Theme Options
- * Version: 1.4.5
+ * Version: 1.4.6
  * Plugin URI: https://github.com/Takeatea/tea_theme_options
  * Description: The Tea Theme Options (or "Tea TO") allows you to easily add professional looking theme options panels to your WordPress theme.
  * Author: Achraf Chouk
@@ -40,8 +40,8 @@ if (!defined('ABSPATH')) {
 //---------------------------------------------------------------------------------------------------------//
 
 //Usefull definitions for the Tea Theme Options
-defined('TTO_VERSION')      or define('TTO_VERSION', '1.4.5');
-defined('TTO_I18N')         or define('TTO_I18N', 'teathemeoptions');
+defined('TTO_VERSION')      or define('TTO_VERSION', '1.4.6');
+defined('TTO_I18N')         or define('TTO_I18N', 'tea_theme_options');
 defined('TTO_DURATION')     or define('TTO_DURATION', 86400);
 defined('TTO_URI')          or define('TTO_URI', plugins_url().'/'.basename(dirname(__FILE__)).'/');
 defined('TTO_PATH')         or define('TTO_PATH', plugin_dir_path(__FILE__));
@@ -57,7 +57,7 @@ defined('TTO_NONCE')        or define('TTO_NONCE', 'tea-ajax-nonce');
  *
  * To get its own settings
  *
- * @since Tea Theme Options 1.4.4
+ * @since Tea Theme Options 1.4.6
  * @todo Special field:     Typeahead, Date, Geolocalisation
  * @todo Shortcodes panel:  Youtube, Vimeo, Dailymotion, Google Maps, Google Adsense,
  *                          Related posts, Private content, RSS Feed, Embed PDF,
@@ -79,7 +79,7 @@ class Tea_Theme_Options
      * @uses wp_schedule_event()
      * @param string $identifier Define the plugin main slug
      *
-     * @since Tea Theme Options 1.4.4
+     * @since Tea Theme Options 1.4.6
      */
     public function __construct($identifier = 'tea_theme_options')
     {
@@ -91,7 +91,7 @@ class Tea_Theme_Options
         if ($is_admin)
         {
             //i18n
-            load_plugin_textdomain(TTO_I18N, false, dirname(TTO_BASENAME));
+            load_plugin_textdomain(TTO_I18N, false, dirname(TTO_BASENAME) . '/languages');
 
             //Registration hooks
             register_activation_hook(__FILE__, array(&$this, '__adminInstall'));

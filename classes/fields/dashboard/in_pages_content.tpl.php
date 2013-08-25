@@ -213,7 +213,7 @@
 
                                         <label class="label-edit-content">
                                             <?php $cptval = isset($item['menu_icon_small']) ? $item['menu_icon_small'] : '' ?>
-                                            <span><?php _e('Small icons', TTO_I18N) ?></span>
+                                            <span><?php _e('Small icon', TTO_I18N) ?></span>
                                             <input type="text" name="tea_add_contents[menu_icon_small]" value="<?php echo $cptval ?>" class="code" />
                                         </label>
 
